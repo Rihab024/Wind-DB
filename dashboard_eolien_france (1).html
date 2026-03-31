@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parcs Éoliens France — Dashboard Interactif</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #f5f4f0; --surface: #ffffff; --surface2: #f0efe9;
+    --text: #1a1a18; --text2: #5a5a56; --text3: #9a9a94;
+    --border: rgba(0,0,0,0.10); --border2: rgba(0,0,0,0.18);
+    --blue: #185FA5; --blue-bg: #E6F1FB; --blue-light: #378ADD;
+    --green: #3B6D11; --green-bg: #EAF3DE; --green-light: #639922;
+    --amber: #633806; --amber-bg: #FAEEDA; --amber-light: #EF9F27;
+    --red: #A32D2D; --red-bg: #FCEBEB; --red-light: #E24B4A;
+    --teal: #0F6E56; --teal-bg: #E1F5EE; --teal-light: #1D9E75;
+    --purple: #3C3489; --purple-bg: #EEEDFE; --purple-light: #7F77DD;
+    --coral: #712B13; --coral-bg: #FAECE7; --coral-light: #D85A30;
+    --radius: 12px; --radius-sm: 8px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a18; --surface: #242422; --surface2: #2e2e2a;
+      --text: #e8e6de; --text2: #a8a69e; --text3: #686660;
+      --border: rgba(255,255,255,0.10); --border2: rgba(255,255,255,0.18);
+      --blue: #85B7EB; --blue-bg: #042C53; --blue-light: #378ADD;
+      --green: #C0DD97; --green-bg: #173404; --green-light: #639922;
+      --amber: #FAC775; --amber-bg: #412402; --amber-light: #EF9F27;
+      --red: #F09595; --red-bg: #501313; --red-light: #E24B4A;
+      --teal: #5DCAA5; --teal-bg: #04342C; --teal-light: #1D9E75;
+      --purple: #AFA9EC; --purple-bg: #26215C; --purple-light: #7F77DD;
+      --coral: #F0997B; --coral-bg: #4A1B0C; --coral-light: #D85A30;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  
+  /* HEADER */
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 56px; }
+  .logo { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; }
+  .logo-icon { width: 28px; height: 28px; background: var(--blue-light); border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+  .logo-icon svg { width: 16px; height: 16px; fill: white; }
+  .header-meta { font-size: 12px; color: var(--text3); }
+
+  /* LAYOUT */
+  .container { max-width: 1280px; margin: 0 auto; padding: 24px 32px; }
+  
+  /* TABS */
+  .tabs { display: flex; gap: 4px; margin-bottom: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px; width: fit-content; }
+  .tab { padding: 6px 16px; border-radius: 6px; border: none; background: none; font-size: 13px; font-weight: 500; color: var(--text2); cursor: pointer; transition: all 0.15s; }
+  .tab.active { background: var(--blue-light); color: white; }
+  .tab:hover:not(.active) { background: var(--surface2); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* FILTERS */
+  .filters { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
+  .filters label { font-size: 12px; color: var(--text2); font-weight: 500; }
+  .filters select { font-size: 13px; padding: 7px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border2); background: var(--surface); color: var(--text); cursor: pointer; }
+  .filter-sep { width: 1px; height: 24px; background: var(--border2); }
+
+  /* KPI GRID */
+  .kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
+  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; }
+  .kpi-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); margin-bottom: 8px; font-weight: 600; }
+  .kpi-value { font-size: 26px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .kpi-sub { font-size: 12px; color: var(--text2); }
+  .kpi-delta { font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 4px; }
+  .delta-up { background: var(--green-bg); color: var(--green); }
+  .delta-dn { background: var(--red-bg); color: var(--red); }
+
+  /* CHART GRID */
+  .chart-row { display: grid; gap: 16px; margin-bottom: 20px; }
+  .cols-2 { grid-template-columns: 1.5fr 1fr; }
+  .cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .cols-1 { grid-template-columns: 1fr; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .card-title { font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+  .card-title span { font-size: 11px; color: var(--text3); font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 800px; }
+  thead th { text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid var(--border); white-space: nowrap; cursor: pointer; user-select: none; }
+  thead th:hover { color: var(--text2); }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:hover { background: var(--surface2); }
+  tbody tr:last-child { border-bottom: none; }
+  td { padding: 11px 14px; vertical-align: middle; }
+  .td-name { font-weight: 600; color: var(--text); }
+  .td-region { color: var(--text2); font-size: 12px; }
+
+  /* BADGES */
+  .badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .b-green { background: var(--green-bg); color: var(--green); }
+  .b-amber { background: var(--amber-bg); color: var(--amber); }
+  .b-red { background: var(--red-bg); color: var(--red); }
+  .b-blue { background: var(--blue-bg); color: var(--blue); }
+  .b-gray { background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+
+  /* LEGEND */
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 12px; font-size: 12px; color: var(--text2); }
+  .legend span { display: flex; align-items: center; gap: 5px; }
+  .leg-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  /* MAP SECTION */
+  .map-grid { display: grid; grid-template-columns: 1fr 340px; gap: 16px; }
+  .region-list { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+  .region-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .region-item:last-child { border-bottom: none; }
+  .region-bar-wrap { width: 90px; height: 6px; background: var(--surface2); border-radius: 3px; margin: 0 12px; }
+  .region-bar { height: 100%; border-radius: 3px; }
+
+  /* DETAIL MODAL */
+  .detail-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; align-items: center; justify-content: center; }
+  .detail-overlay.open { display: flex; }
+  .detail-box { background: var(--surface); border-radius: var(--radius); padding: 28px; max-width: 560px; width: 90%; max-height: 80vh; overflow-y: auto; }
+  .detail-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+  .detail-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text2); }
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .detail-field { background: var(--surface2); border-radius: var(--radius-sm); padding: 12px; }
+  .detail-field-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+  .detail-field-value { font-size: 15px; font-weight: 600; color: var(--text); }
+
+  /* SEARCH */
+  .search-wrap { position: relative; }
+  .search-wrap input { font-size: 13px; padding: 7px 12px 7px 34px; border-radius: var(--radius-sm); border: 1px solid var(--border2); background: var(--surface); color: var(--text); width: 220px; }
+  .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 14px; }
+
+  /* PROGRESS BARS */
+  .prog-wrap { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+  .prog-bar { height: 100%; border-radius: 3px; transition: width 0.5s; }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .cols-2, .cols-3 { grid-template-columns: 1fr; }
+    .map-grid { grid-template-columns: 1fr; }
+    .container { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 2L8 8H4l4 4-1.5 6L12 15l5.5 3L16 12l4-4h-4z"/></svg>
+    </div>
+    Parcs Éoliens France — Base de Données Interactive
+  </div>
+  <div class="header-meta">50 parcs · 100 éoliennes · 2022–2024 · Données ouvertes</div>
+</header>
+
+<div class="container">
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('overview')">Vue générale</button>
+    <button class="tab" onclick="switchTab('parcs')">Parcs & données</button>
+    <button class="tab" onclick="switchTab('defauts')">Défauts & coûts</button>
+    <button class="tab" onclick="switchTab('materiaux')">Matériaux & composants</button>
+
+  </div>
+
+  <!-- ===== TAB: VUE GÉNÉRALE ===== -->
+  <div id="tab-overview" class="tab-content active">
+
+    <div class="filters">
+      <label>Région :</label>
+      <select id="f-region" onchange="updateOverview()">
+        <option value="all">Toutes</option>
+        <option>Hauts-de-France</option>
+        <option>Normandie</option>
+        <option>Bretagne</option>
+        <option>Grand Est</option>
+        <option>Occitanie</option>
+        <option>Nouvelle-Aquitaine</option>
+        <option>Centre-Val de Loire</option>
+        <option>Pays de la Loire</option>
+        <option>Bourgogne-Franche-Comté</option>
+        <option>Auvergne-Rhône-Alpes</option>
+        <option>Provence-Alpes-Côte d Azur</option>
+      </select>
+      <div class="filter-sep"></div>
+      <label>Année :</label>
+      <select id="f-year" onchange="updateOverview()">
+        <option value="all">2022–2024</option>
+        <option>2022</option>
+        <option>2023</option>
+        <option>2024</option>
+      </select>
+    </div>
+
+    <div class="kpi-grid" id="kpi-container"></div>
+
+    <div class="chart-row cols-2">
+      <div class="card">
+        <div class="card-title">Production mensuelle par région (GWh) <span>données 2022–2024</span></div>
+        <div class="legend" id="leg-prod"></div>
+        <div style="position:relative;height:260px"><canvas id="c-prod"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Puissance installée par région (MW)</div>
+        <div style="position:relative;height:280px"><canvas id="c-mw"></canvas></div>
+      </div>
+    </div>
+
+    <div class="chart-row cols-3">
+      <div class="card">
+        <div class="card-title">Disponibilité moyenne par opérateur (%)</div>
+        <div style="position:relative;height:220px"><canvas id="c-dispo"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Type d'éolienne par fabricant</div>
+        <div style="position:relative;height:220px"><canvas id="c-fab"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Corrélation vent / production</div>
+        <div style="position:relative;height:220px"><canvas id="c-scatter"></canvas></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== TAB: PARCS ===== -->
+  <div id="tab-parcs" class="tab-content">
+    <div class="filters">
+      <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input type="text" id="search-parc" placeholder="Rechercher un parc..." oninput="renderTable()">
+      </div>
+      <div class="filter-sep"></div>
+      <label>Région :</label>
+      <select id="f-region2" onchange="renderTable()">
+        <option value="all">Toutes</option>
+        <option>Hauts-de-France</option><option>Normandie</option><option>Bretagne</option>
+        <option>Grand Est</option><option>Occitanie</option><option>Nouvelle-Aquitaine</option>
+        <option>Centre-Val de Loire</option><option>Pays de la Loire</option>
+        <option>Bourgogne-Franche-Comté</option><option>Auvergne-Rhône-Alpes</option>
+        <option>Provence-Alpes-Côte d Azur</option>
+      </select>
+      <label>Opérateur :</label>
+      <select id="f-oper" onchange="renderTable()">
+        <option value="all">Tous</option>
+        <option>EDF Renouvelables</option><option>Engie Green</option>
+        <option>TotalEnergies Renouvelables</option><option>Voltalia</option>
+        <option>Boralex</option><option>Valeco</option><option>Quadran</option>
+        <option>Wpd</option><option>Neoen</option><option>RWE Renewables</option>
+      </select>
+    </div>
+    <div class="card">
+      <div class="card-title">Liste des parcs éoliens <span id="count-parcs"></span></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th onclick="sortTable('nom')">Parc ↕</th>
+              <th onclick="sortTable('region')">Région ↕</th>
+              <th onclick="sortTable('mw')">MW ↕</th>
+              <th onclick="sortTable('nb')">Éoliennes ↕</th>
+              <th onclick="sortTable('annee')">Mise en service ↕</th>
+              <th onclick="sortTable('dispo')">Disponibilité ↕</th>
+              <th onclick="sortTable('defauts')">Défauts ↕</th>
+              <th onclick="sortTable('cout')">Coût maint. ↕</th>
+              <th>Statut</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="table-parcs"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: DÉFAUTS ===== -->
+  <div id="tab-defauts" class="tab-content">
+    <div class="chart-row cols-2">
+      <div class="card">
+        <div class="card-title">Défauts par type de composant</div>
+        <div style="position:relative;height:280px"><canvas id="c-defcomp"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Gravité des défauts</div>
+        <div style="position:relative;height:280px"><canvas id="c-gravite"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-row cols-2">
+      <div class="card">
+        <div class="card-title">Coûts de maintenance par catégorie (€)</div>
+        <div style="position:relative;height:260px"><canvas id="c-coutcat"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Durée d'arrêt par type de défaut (heures)</div>
+        <div style="position:relative;height:260px"><canvas id="c-arret"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Historique des défauts critiques</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Éolienne</th><th>Composant</th><th>Type</th><th>Gravité</th><th>Arrêt (h)</th><th>Coût répar.</th><th>Cause</th></tr></thead>
+          <tbody id="table-defauts"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: MATÉRIAUX ===== -->
+  <div id="tab-materiaux" class="tab-content">
+    <div class="chart-row cols-2">
+      <div class="card">
+        <div class="card-title">Résistance mécanique par matériau (MPa)</div>
+        <div style="position:relative;height:300px"><canvas id="c-resist"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Répartition des matériaux par catégorie</div>
+        <div style="position:relative;height:300px"><canvas id="c-matcat"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-row cols-2">
+      <div class="card">
+        <div class="card-title">Coût au kg des matériaux (€/kg)</div>
+        <div style="position:relative;height:280px"><canvas id="c-matcout"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Durée de vie des composants critiques (années)</div>
+        <div style="position:relative;height:280px"><canvas id="c-durée"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+
+</div><!-- /container -->
+
+<!-- DETAIL MODAL -->
+<div class="detail-overlay" id="detail-overlay" onclick="closeDetail(event)">
+  <div class="detail-box" id="detail-box"></div>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const REGIONS = ['Hauts-de-France','Normandie','Bretagne','Grand Est','Occitanie',
+  'Nouvelle-Aquitaine','Centre-Val de Loire','Pays de la Loire',
+  'Bourgogne-Franche-Comté','Auvergne-Rhône-Alpes','Provence-Alpes-Côte d Azur'];
+
+const RCOLORS = {
+  'Hauts-de-France':'#378ADD','Normandie':'#7F77DD','Bretagne':'#EF9F27',
+  'Grand Est':'#1D9E75','Occitanie':'#D85A30','Nouvelle-Aquitaine':'#E24B4A',
+  'Centre-Val de Loire':'#639922','Pays de la Loire':'#185FA5',
+  'Bourgogne-Franche-Comté':'#888780','Auvergne-Rhône-Alpes':'#BA7517',
+  'Provence-Alpes-Côte d Azur':'#993556'
+};
+
+const PARCS = [
+  {id:1,nom:'Les Hauts de Flandre',region:'Hauts-de-France',dept:'Nord',mw:60,nb:20,annee:2018,dispo:94.1,defauts:9,cout:380,operateur:'EDF Renouvelables',statut:'En service',vent:8.9,invest:98.5},
+  {id:2,nom:'Parc du Cambrésis',region:'Hauts-de-France',dept:'Nord',mw:45,nb:15,annee:2016,dispo:95.3,defauts:7,cout:290,operateur:'Engie Green',statut:'En service',vent:8.5,invest:74.2},
+  {id:3,nom:'Éoliennes du Vermandois',region:'Hauts-de-France',dept:'Somme',mw:30,nb:10,annee:2015,dispo:96.8,defauts:4,cout:175,operateur:'TotalEnergies Renouvelables',statut:'En service',vent:8.2,invest:48.0},
+  {id:4,nom:'Ferme éolienne de Penly',region:'Normandie',dept:'Seine-Maritime',mw:24,nb:8,annee:2019,dispo:97.2,defauts:3,cout:142,operateur:'EDF Renouvelables',statut:'En service',vent:7.8,invest:39.8},
+  {id:5,nom:'Parc du Pays de Caux',region:'Normandie',dept:'Seine-Maritime',mw:36,nb:12,annee:2017,dispo:95.8,defauts:5,cout:210,operateur:'Engie Green',statut:'En service',vent:8.1,invest:59.4},
+  {id:6,nom:'Saint-Valery-en-Caux',region:'Normandie',dept:'Seine-Maritime',mw:18,nb:6,annee:2020,dispo:96.5,defauts:2,cout:98,operateur:'Voltalia',statut:'En service',vent:7.6,invest:29.5},
+  {id:7,nom:'Plateau de Frugie',region:'Bretagne',dept:'Dordogne',mw:21,nb:7,annee:2015,dispo:93.4,defauts:8,cout:320,operateur:'Engie Green',statut:'En service',vent:9.2,invest:34.2},
+  {id:8,nom:'Cap Sizun',region:'Bretagne',dept:'Finistère',mw:15,nb:5,annee:2012,dispo:92.7,defauts:6,cout:245,operateur:'TotalEnergies Renouvelables',statut:'En service',vent:9.8,invest:24.5},
+  {id:9,nom:'Lévénez',region:'Bretagne',dept:'Côtes-d Armor',mw:24,nb:8,annee:2016,dispo:94.0,defauts:5,cout:198,operateur:'Boralex',statut:'En service',vent:9.1,invest:39.5},
+  {id:10,nom:'Montagne Noire',region:'Occitanie',dept:'Aude',mw:33,nb:11,annee:2013,dispo:95.8,defauts:2,cout:110,operateur:'Valeco',statut:'En service',vent:7.2,invest:52.0},
+  {id:11,nom:'Parc de Marcoussis',region:'Occitanie',dept:'Hérault',mw:27,nb:9,annee:2017,dispo:96.9,defauts:3,cout:135,operateur:'Quadran',statut:'En service',vent:7.5,invest:44.1},
+  {id:12,nom:'Larzac Sud',region:'Occitanie',dept:'Aveyron',mw:51,nb:17,annee:2019,dispo:98.1,defauts:1,cout:88,operateur:'TotalEnergies Renouvelables',statut:'En service',vent:6.9,invest:85.0},
+  {id:13,nom:'Plaine de Champagne',region:'Grand Est',dept:'Marne',mw:42,nb:14,annee:2016,dispo:95.6,defauts:6,cout:255,operateur:'EDF Renouvelables',statut:'En service',vent:8.3,invest:69.0},
+  {id:14,nom:'Côtes de Meuse',region:'Grand Est',dept:'Meuse',mw:36,nb:12,annee:2015,dispo:96.2,defauts:4,cout:188,operateur:'Engie Green',statut:'En service',vent:8.0,invest:59.0},
+  {id:15,nom:'Haute Marne Éolien',region:'Grand Est',dept:'Haute-Marne',mw:54,nb:18,annee:2018,dispo:94.8,defauts:7,cout:310,operateur:'Voltalia',statut:'En service',vent:8.6,invest:89.0},
+  {id:16,nom:'Parc de la Beauce',region:'Centre-Val de Loire',dept:'Eure-et-Loir',mw:48,nb:16,annee:2014,dispo:96.5,defauts:4,cout:195,operateur:'Boralex',statut:'En service',vent:7.8,invest:79.0},
+  {id:17,nom:'Sologne Éolien',region:'Centre-Val de Loire',dept:'Loir-et-Cher',mw:30,nb:10,annee:2019,dispo:97.1,defauts:2,cout:118,operateur:'Valeco',statut:'En service',vent:7.2,invest:49.5},
+  {id:18,nom:'Vendée Atlantique',region:'Pays de la Loire',dept:'Vendée',mw:39,nb:13,annee:2016,dispo:95.8,defauts:5,cout:228,operateur:'Quadran',statut:'En service',vent:7.9,invest:64.0},
+  {id:19,nom:'Loire-Atlantique Nord',region:'Pays de la Loire',dept:'Loire-Atlantique',mw:27,nb:9,annee:2020,dispo:97.2,defauts:2,cout:132,operateur:'Wpd',statut:'En service',vent:7.5,invest:44.5},
+  {id:20,nom:'Parc du Poitou',region:'Nouvelle-Aquitaine',dept:'Vienne',mw:33,nb:11,annee:2015,dispo:95.5,defauts:4,cout:188,operateur:'Neoen',statut:'En service',vent:7.8,invest:54.5},
+  {id:21,nom:'Charentes Maritime Éolien',region:'Nouvelle-Aquitaine',dept:'Charente-Maritime',mw:24,nb:8,annee:2017,dispo:95.8,defauts:3,cout:145,operateur:'RWE Renewables',statut:'En service',vent:7.5,invest:39.5},
+  {id:22,nom:'Gironde Énergie',region:'Nouvelle-Aquitaine',dept:'Gironde',mw:30,nb:10,annee:2018,dispo:96.5,defauts:2,cout:128,operateur:'EDF Renouvelables',statut:'En service',vent:7.2,invest:49.5},
+  {id:23,nom:'Parc Catalan',region:'Occitanie',dept:'Pyr.-Orientales',mw:36,nb:12,annee:2011,dispo:94.2,defauts:6,cout:268,operateur:'Engie Green',statut:'En service',vent:7.8,invest:59.0},
+  {id:24,nom:'Aude Éolien',region:'Occitanie',dept:'Aude',mw:45,nb:15,annee:2014,dispo:95.8,defauts:4,cout:195,operateur:'TotalEnergies Renouvelables',statut:'En service',vent:8.2,invest:74.0},
+  {id:25,nom:'Aveyron Nord',region:'Occitanie',dept:'Aveyron',mw:42,nb:14,annee:2016,dispo:96.5,defauts:3,cout:165,operateur:'Voltalia',statut:'En service',vent:7.5,invest:69.5},
+  {id:26,nom:'Pyrénées Ariège',region:'Occitanie',dept:'Ariège',mw:24,nb:8,annee:2020,dispo:97.2,defauts:1,cout:98,operateur:'Boralex',statut:'En service',vent:6.8,invest:39.5},
+  {id:27,nom:'Ardennes Éolien',region:'Grand Est',dept:'Ardennes',mw:48,nb:16,annee:2013,dispo:94.5,defauts:7,cout:298,operateur:'Valeco',statut:'En service',vent:8.5,invest:79.0},
+  {id:28,nom:'Aube Énergie',region:'Grand Est',dept:'Aube',mw:33,nb:11,annee:2017,dispo:96.2,defauts:3,cout:158,operateur:'Quadran',statut:'En service',vent:8.0,invest:54.5},
+  {id:29,nom:'Moselle Éolien',region:'Grand Est',dept:'Moselle',mw:27,nb:9,annee:2015,dispo:95.8,defauts:4,cout:178,operateur:'Wpd',statut:'En service',vent:7.8,invest:44.5},
+  {id:30,nom:'Alsace Nord',region:'Grand Est',dept:'Bas-Rhin',mw:21,nb:7,annee:2018,dispo:96.8,defauts:2,cout:112,operateur:'Neoen',statut:'En service',vent:7.5,invest:34.5},
+  {id:31,nom:'Côte d Or Éolien',region:'Bourgogne-Franche-Comté',dept:'Côte-d Or',mw:36,nb:12,annee:2016,dispo:95.8,defauts:4,cout:188,operateur:'RWE Renewables',statut:'En service',vent:7.8,invest:59.5},
+  {id:32,nom:'Saône-et-Loire Wind',region:'Bourgogne-Franche-Comté',dept:'Saône-et-Loire',mw:30,nb:10,annee:2019,dispo:97.2,defauts:2,cout:132,operateur:'EDF Renouvelables',statut:'En service',vent:7.2,invest:49.5},
+  {id:33,nom:'Doubs Montagne',region:'Bourgogne-Franche-Comté',dept:'Doubs',mw:24,nb:8,annee:2014,dispo:94.8,defauts:5,cout:228,operateur:'Engie Green',statut:'En service',vent:6.5,invest:39.5},
+  {id:34,nom:'Allier Éolien',region:'Auvergne-Rhône-Alpes',dept:'Allier',mw:33,nb:11,annee:2017,dispo:95.8,defauts:4,cout:188,operateur:'TotalEnergies Renouvelables',statut:'En service',vent:7.5,invest:54.5},
+  {id:35,nom:'Puy-de-Dôme Wind',region:'Auvergne-Rhône-Alpes',dept:'Puy-de-Dôme',mw:27,nb:9,annee:2015,dispo:94.5,defauts:5,cout:245,operateur:'Voltalia',statut:'En service',vent:7.2,invest:44.5},
+  {id:36,nom:'Loire Énergie',region:'Auvergne-Rhône-Alpes',dept:'Loire',mw:39,nb:13,annee:2018,dispo:96.2,defauts:3,cout:165,operateur:'Boralex',statut:'En service',vent:7.5,invest:64.5},
+  {id:37,nom:'Ardèche Éolien',region:'Auvergne-Rhône-Alpes',dept:'Ardèche',mw:30,nb:10,annee:2016,dispo:95.8,defauts:3,cout:158,operateur:'Valeco',statut:'En service',vent:7.0,invest:49.5},
+  {id:38,nom:'Drôme Provence',region:'Auvergne-Rhône-Alpes',dept:'Drôme',mw:24,nb:8,annee:2019,dispo:97.2,defauts:1,cout:98,operateur:'Quadran',statut:'En service',vent:7.2,invest:39.5},
+  {id:39,nom:'Var Éolien',region:'Provence-Alpes-Côte d Azur',dept:'Var',mw:33,nb:11,annee:2012,dispo:94.8,defauts:5,cout:228,operateur:'Wpd',statut:'En service',vent:6.8,invest:54.5},
+  {id:40,nom:'Alpes-de-Haute-Provence',region:'Provence-Alpes-Côte d Azur',dept:'Alpes-de-H.P.',mw:42,nb:14,annee:2015,dispo:96.2,defauts:3,cout:165,operateur:'Neoen',statut:'En service',vent:7.2,invest:69.5},
+  {id:41,nom:'Isère Belledonne',region:'Auvergne-Rhône-Alpes',dept:'Isère',mw:21,nb:7,annee:2020,dispo:97.5,defauts:1,cout:88,operateur:'RWE Renewables',statut:'En service',vent:6.5,invest:34.5},
+  {id:42,nom:'Haute-Savoie Alpes',region:'Auvergne-Rhône-Alpes',dept:'Haute-Savoie',mw:15,nb:5,annee:2021,dispo:98.2,defauts:0,cout:42,operateur:'EDF Renouvelables',statut:'En construction',vent:6.0,invest:24.5},
+  {id:43,nom:'Finistère Mer',region:'Bretagne',dept:'Finistère',mw:48,nb:16,annee:2018,dispo:93.5,defauts:8,cout:345,operateur:'Engie Green',statut:'En service',vent:9.5,invest:79.5},
+  {id:44,nom:'Morbihan Éolien',region:'Bretagne',dept:'Morbihan',mw:36,nb:12,annee:2016,dispo:94.8,defauts:5,cout:245,operateur:'TotalEnergies Renouvelables',statut:'En service',vent:9.2,invest:59.5},
+  {id:45,nom:'Ille-et-Vilaine Wind',region:'Bretagne',dept:'Ille-et-Vilaine',mw:27,nb:9,annee:2017,dispo:95.5,defauts:4,cout:188,operateur:'Voltalia',statut:'En service',vent:8.8,invest:44.5},
+  {id:46,nom:'Calvados Normandie',region:'Normandie',dept:'Calvados',mw:30,nb:10,annee:2019,dispo:96.8,defauts:2,cout:132,operateur:'Boralex',statut:'En service',vent:7.8,invest:49.5},
+  {id:47,nom:'Manche Éolien',region:'Normandie',dept:'Manche',mw:42,nb:14,annee:2015,dispo:93.5,defauts:8,cout:345,operateur:'Valeco',statut:'En service',vent:9.2,invest:69.5},
+  {id:48,nom:'Eure Énergie',region:'Normandie',dept:'Eure',mw:33,nb:11,annee:2018,dispo:96.2,defauts:3,cout:158,operateur:'Quadran',statut:'En service',vent:7.8,invest:54.5},
+  {id:49,nom:'Oise Picardie',region:'Hauts-de-France',dept:'Oise',mw:45,nb:15,annee:2014,dispo:95.5,defauts:5,cout:228,operateur:'Wpd',statut:'En service',vent:8.5,invest:74.5},
+  {id:50,nom:'Pas-de-Calais Éolien',region:'Hauts-de-France',dept:'Pas-de-Calais',mw:54,nb:18,annee:2012,dispo:93.2,defauts:9,cout:398,operateur:'Neoen',statut:'En service',vent:9.2,invest:89.5},
+];
+
+const PROD_DATA = {
+  labels:['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'],
+  'Hauts-de-France':[420,390,360,280,220,190,180,195,240,310,380,410],
+  'Normandie':[195,182,170,138,112,98,92,98,122,158,185,192],
+  'Bretagne':[310,295,280,210,165,140,135,148,178,235,285,305],
+  'Grand Est':[380,355,330,250,195,170,162,178,215,285,345,370],
+  'Occitanie':[180,165,155,130,110,95,90,95,115,145,170,175],
+  'Nouvelle-Aquitaine':[160,148,138,112,92,80,76,82,102,128,152,158],
+  'Centre-Val de Loire':[140,132,122,98,82,70,66,72,88,112,132,138],
+  'Pays de la Loire':[125,118,108,88,72,62,58,64,78,98,118,122],
+  'Bourgogne-Franche-Comté':[88,82,76,60,50,42,40,44,54,68,82,86],
+  'Auvergne-Rhône-Alpes':[118,112,104,82,68,58,54,60,72,92,110,116],
+  'Provence-Alpes-Côte d Azur':[68,64,60,48,40,34,32,36,44,56,64,68],
+};
+
+const DEFAUTS_DATA = [
+  {eol:'SN-001-HDF',comp:'Pale principale',type:'Fissure pale',gravite:'Grave',arret:168,cout:28500,cause:'Fatigue matériau',date:'2022-03-15'},
+  {eol:'SN-001-CAM',comp:'Multiplicateur',type:'Fuite huile',gravite:'Modérée',arret:192,cout:15200,cause:'Usure',date:'2022-05-10'},
+  {eol:'SN-001-VER',comp:'Roulement principal',type:'Vibrations anormales',gravite:'Grave',arret:120,cout:42000,cause:'Fatigue',date:'2022-07-20'},
+  {eol:'SN-002-PEN',comp:'Convertisseur',type:'Court-circuit',gravite:'Critique',arret:72,cout:85000,cause:'Défaut électrique',date:'2022-09-05'},
+  {eol:'SN-001-CAU',comp:'Roulement multiplicateur',type:'Contamination',gravite:'Modérée',arret:72,cout:12500,cause:'Contamination',date:'2022-11-12'},
+  {eol:'SN-001-CHA',comp:'Mât tubulaire',type:'Micro-fissure soudure',gravite:'Grave',arret:924,cout:65000,cause:'Fatigue vibratoire',date:'2023-01-08'},
+  {eol:'SN-001-HMA',comp:'Pale principale',type:'Impact foudre',gravite:'Modérée',arret:192,cout:18500,cause:'Foudre',date:'2023-02-20'},
+  {eol:'SN-001-PEN',comp:'Multiplicateur',type:'Rupture engrenage',gravite:'Critique',arret:240,cout:145000,cause:'Fatigue',date:'2023-03-15'},
+  {eol:'SN-001-LAN',comp:'Roulement génératrice',type:'Vibrations',gravite:'Modérée',arret:96,cout:22000,cause:'Usure',date:'2023-04-02'},
+  {eol:'SN-001-CAT',comp:'Système SCADA',type:'Perte communication',gravite:'Faible',arret:48,cout:4500,cause:'Électronique',date:'2023-05-18'},
+  {eol:'SN-001-AVE',comp:'Pale principale',type:'Délamingage',gravite:'Grave',arret:240,cout:35000,cause:'Défaut fabrication',date:'2023-06-10'},
+  {eol:'SN-001-MOS',comp:'Système yaw',type:'Blocage orientation',gravite:'Modérée',arret:168,cout:18000,cause:'Mécanique',date:'2023-07-05'},
+  {eol:'SN-001-CDO',comp:'Multiplicateur',type:'Surchauffe',gravite:'Grave',arret:552,cout:38000,cause:'Refroidissement',date:'2023-08-22'},
+  {eol:'SN-001-PDD',comp:'Génératrice',type:'Déséquilibre phases',gravite:'Modérée',arret:96,cout:28000,cause:'Électrique',date:'2023-09-10'},
+  {eol:'SN-001-ARD',comp:'Paratonnerre',type:'Récepteur oxydé',gravite:'Faible',arret:72,cout:3500,cause:'Corrosion',date:'2023-10-30'},
+  {eol:'SN-001-ISE',comp:'Roulement principal',type:'Ecaillage',gravite:'Critique',arret:168,cout:95000,cause:'Fatigue',date:'2023-11-15'},
+  {eol:'SN-001-IVW',comp:'Convertisseur',type:'Surchauffe IGBT',gravite:'Modérée',arret:120,cout:32000,cause:'Thermique',date:'2023-12-05'},
+  {eol:'SN-001-MAN',comp:'Pale principale',type:'Érosion bord attaque',gravite:'Modérée',arret:240,cout:22000,cause:'Érosion',date:'2024-01-15'},
+  {eol:'SN-001-ARI',comp:'Roulement palier',type:'Jeu excessif',gravite:'Modérée',arret:96,cout:18500,cause:'Usure',date:'2024-02-08'},
+  {eol:'SN-001-ARD',comp:'Transformateur',type:'Fuite huile',gravite:'Grave',arret:96,cout:42000,cause:'Étanchéité',date:'2024-03-20'},
+  {eol:'SN-001-SAO',comp:'Pale principale',type:'Fissure racine',gravite:'Critique',arret:336,cout:185000,cause:'Fatigue',date:'2024-07-22'},
+  {eol:'SN-001-LOI',comp:'Génératrice',type:'Surchauffe stator',gravite:'Grave',arret:120,cout:55000,cause:'Thermique',date:'2024-09-05'},
+  {eol:'SN-001-PDC',comp:'Convertisseur',type:'Diode défaillante',gravite:'Grave',arret:192,cout:72000,cause:'Vieillissement',date:'2024-12-20'},
+  {eol:'SN-001-FIN',comp:'Transformateur',type:'Coupure enroulement',gravite:'Critique',arret:96,cout:92000,cause:'Électrique',date:'2024-10-18'},
+];
+
+const MATIERES = [
+  {nom:'Fibre de verre GFRP',cat:'Composite',resist:350,cout:3.2},
+  {nom:'Fibre de carbone CFRP',cat:'Composite',resist:600,cout:25.0},
+  {nom:'Acier S355',cat:'Métallique',resist:500,cout:0.8},
+  {nom:'Acier inoxydable 316L',cat:'Métallique',resist:570,cout:3.5},
+  {nom:'Fonte GJS-400',cat:'Métallique',resist:400,cout:1.2},
+  {nom:'Alliage aluminium',cat:'Métallique',resist:310,cout:2.1},
+  {nom:'Béton armé C40',cat:'Génie civil',resist:40,cout:0.12},
+  {nom:'Époxy résine',cat:'Polymère',resist:80,cout:8.0},
+  {nom:'Acier à roulement',cat:'Métallique',resist:1500,cout:2.5},
+  {nom:'Titane Grade 5',cat:'Métallique',resist:950,cout:35.0},
+  {nom:'Néodyme-Fer-Bore',cat:'Magnétique',resist:null,cout:80.0},
+  {nom:'Inconel 718',cat:'Métallique',resist:1240,cout:55.0},
+];
+
+const COMPS_VIE = [
+  {nom:'Mât tubulaire acier',duree:25,criticite:'Important',cout:420000},
+  {nom:'Pale principale',duree:20,criticite:'Critique',cout:280000},
+  {nom:'Génératrice PMG',duree:25,criticite:'Critique',cout:195000},
+  {nom:'Multiplicateur',duree:15,criticite:'Critique',cout:180000},
+  {nom:'Convertisseur',duree:15,criticite:'Critique',cout:85000},
+  {nom:'Transformateur',duree:30,criticite:'Critique',cout:65000},
+  {nom:'Roulement principal',duree:15,criticite:'Critique',cout:45000},
+  {nom:'Système yaw',duree:20,criticite:'Important',cout:38000},
+  {nom:'Système SCADA',duree:10,criticite:'Critique',cout:35000},
+  {nom:'Frein mécanique',duree:12,criticite:'Critique',cout:6500},
+];
+
+
+// ============================================================
+// CHART INSTANCES
+// ============================================================
+let charts = {};
+function dc(id) { if(charts[id]) { charts[id].destroy(); delete charts[id]; } }
+const TC = (v) => ({ color: getComputedStyle(document.documentElement).getPropertyValue('--text2').trim() || '#888' });
+function gc(alpha) {
+  const s = getComputedStyle(document.documentElement);
+  return (s.getPropertyValue('--text3').trim() || 'rgba(0,0,0,0.1)');
+}
+
+// ============================================================
+// OVERVIEW TAB
+// ============================================================
+let sortKey = 'nom', sortDir = 1;
+
+function filterParcs() {
+  const r = (document.getElementById('f-region') || document.getElementById('f-region2') || {}).value || 'all';
+  const r2 = (document.getElementById('f-region2') || {}).value || 'all';
+  const o = (document.getElementById('f-oper') || {}).value || 'all';
+  const q = (document.getElementById('search-parc') || {}).value || '';
+  return PARCS.filter(p => {
+    const rr = r !== 'all' ? p.region === r : (r2 !== 'all' ? p.region === r2 : true);
+    const oo = o !== 'all' ? p.operateur === o : true;
+    const qq = p.nom.toLowerCase().includes(q.toLowerCase()) || p.region.toLowerCase().includes(q.toLowerCase());
+    return rr && oo && qq;
+  });
+}
+
+function updateOverview() {
+  const data = filterParcs();
+  const totalMW = data.reduce((s,p)=>s+p.mw,0);
+  const totalNb = data.reduce((s,p)=>s+p.nb,0);
+  const avgDispo = (data.reduce((s,p)=>s+p.dispo,0)/data.length).toFixed(1);
+  const totalCout = data.reduce((s,p)=>s+p.cout,0);
+  const totalInvest = data.reduce((s,p)=>s+p.invest,0);
+  const avgVent = (data.reduce((s,p)=>s+p.vent,0)/data.length).toFixed(1);
+
+  document.getElementById('kpi-container').innerHTML = `
+    <div class="kpi"><div class="kpi-label">Parcs</div><div class="kpi-value">${data.length}</div><div class="kpi-sub">sur 50 au total</div></div>
+    <div class="kpi"><div class="kpi-label">Puissance</div><div class="kpi-value">${totalMW.toLocaleString('fr-FR')} <small style="font-size:14px;font-weight:400">MW</small></div><div class="kpi-sub">${totalNb} éoliennes</div><span class="kpi-delta delta-up">+12% vs 2020</span></div>
+    <div class="kpi"><div class="kpi-label">Disponibilité</div><div class="kpi-value">${avgDispo}<small style="font-size:14px;font-weight:400">%</small></div><div class="kpi-sub">taux moyen 2024</div></div>
+    <div class="kpi"><div class="kpi-label">Coût maintenance</div><div class="kpi-value">${(totalCout/1000).toFixed(1)}<small style="font-size:14px;font-weight:400"> M€</small></div><div class="kpi-sub">annuel total</div><span class="kpi-delta delta-dn">+8% vs 2022</span></div>
+    <div class="kpi"><div class="kpi-label">Vent moyen</div><div class="kpi-value">${avgVent}<small style="font-size:14px;font-weight:400"> m/s</small></div><div class="kpi-sub">vitesse annuelle</div></div>
+  `;
+
+  // Production chart
+  dc('c-prod');
+  const rSel = document.getElementById('f-region')?.value || 'all';
+  const regs = rSel === 'all' ? REGIONS : [rSel];
+  const visRegs = regs.filter(r => PROD_DATA[r]);
+  document.getElementById('leg-prod').innerHTML = visRegs.map(r =>
+    `<span><span class="leg-dot" style="background:${RCOLORS[r]}"></span>${r}</span>`).join('');
+  charts['c-prod'] = new Chart(document.getElementById('c-prod'), {
+    type:'bar',
+    data:{ labels:PROD_DATA.labels, datasets: visRegs.map(r=>({
+      label:r, data:PROD_DATA[r], backgroundColor:RCOLORS[r]+'bb', borderRadius:3, borderSkipped:false
+    }))},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{ x:{stacked:true,ticks:{font:{size:11}},grid:{color:'rgba(128,128,128,0.1)'}},
+               y:{stacked:true,ticks:{font:{size:11}},grid:{color:'rgba(128,128,128,0.1)'},title:{display:true,text:'GWh',font:{size:11}}} }}
+  });
+
+  // MW by region
+  dc('c-mw');
+  const regMW = {};
+  data.forEach(p=>{ regMW[p.region]=(regMW[p.region]||0)+p.mw; });
+  const rwKeys = Object.keys(regMW).sort((a,b)=>regMW[b]-regMW[a]);
+  charts['c-mw'] = new Chart(document.getElementById('c-mw'), {
+    type:'bar',
+    data:{ labels:rwKeys.map(r=>r.replace('Auvergne-Rhône-Alpes','A-R-A').replace('Bourgogne-Franche-Comté','B-F-C').replace('Provence-Alpes-Côte d Azur','PACA').replace('Centre-Val de Loire','CVL')),
+           datasets:[{ data:rwKeys.map(r=>regMW[r]), backgroundColor:rwKeys.map(r=>RCOLORS[r]||'#888'), borderRadius:4, borderSkipped:false }]},
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{ x:{ticks:{font:{size:10}},grid:{color:'rgba(128,128,128,0.1)'}}, y:{ticks:{font:{size:10}},grid:{display:false}} }}
+  });
+
+  // Dispo by operateur
+  dc('c-dispo');
+  const opDispo = {};
+  data.forEach(p=>{ if(!opDispo[p.operateur]) opDispo[p.operateur]=[]; opDispo[p.operateur].push(p.dispo); });
+  const opKeys = Object.keys(opDispo).sort();
+  const opAvg = opKeys.map(k=>(opDispo[k].reduce((s,v)=>s+v,0)/opDispo[k].length).toFixed(1));
+  charts['c-dispo'] = new Chart(document.getElementById('c-dispo'), {
+    type:'bar',
+    data:{ labels:opKeys.map(k=>k.replace(' Renouvelables','').replace(' Green','').replace('TotalEnergies','Total')),
+           datasets:[{ data:opAvg, backgroundColor:'#378ADD99', borderRadius:4, borderSkipped:false }]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{ x:{ticks:{font:{size:9},maxRotation:45}}, y:{min:90,max:99,ticks:{font:{size:10}},grid:{color:'rgba(128,128,128,0.1)'}} }}
+  });
+
+  // Fabricants
+  dc('c-fab');
+  const fabs = {'Vestas':38,'Enercon':22,'Siemens/SG':20,'GE':14,'Nordex':14,'Gamesa':6,'Autres':6};
+  charts['c-fab'] = new Chart(document.getElementById('c-fab'), {
+    type:'doughnut',
+    data:{ labels:Object.keys(fabs),
+      datasets:[{ data:Object.values(fabs), backgroundColor:['#378ADD','#1D9E75','#EF9F27','#D85A30','#7F77DD','#888780','#E24B4A'], borderWidth:0, hoverOffset:4 }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:10,padding:6}}} }
+  });
+
+  // Scatter vent / dispo
+  dc('c-scatter');
+  charts['c-scatter'] = new Chart(document.getElementById('c-scatter'), {
+    type:'scatter',
+    data:{ datasets:[{ label:'Parcs', data:data.map(p=>({x:p.vent,y:p.dispo,label:p.nom})),
+      backgroundColor: data.map(p=>RCOLORS[p.region]||'#888'), pointRadius:7, pointHoverRadius:9 }]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},
+      tooltip:{ callbacks:{ label:(ctx)=>`${ctx.raw.label}: ${ctx.raw.x}m/s / ${ctx.raw.y}%` } }},
+      scales:{ x:{min:5.5,max:11,title:{display:true,text:'Vent moyen (m/s)',font:{size:11}},ticks:{font:{size:10}},grid:{color:'rgba(128,128,128,0.1)'}},
+               y:{min:90,max:100,title:{display:true,text:'Disponibilité (%)',font:{size:11}},ticks:{font:{size:10}},grid:{color:'rgba(128,128,128,0.1)'}} }}
+  });
+}
+
+// ============================================================
+// TABLE PARCS
+// ============================================================
+function sortTable(key) {
+  if(sortKey===key) sortDir*=-1; else { sortKey=key; sortDir=1; }
+  renderTable();
+}
+function renderTable() {
+  const data = filterParcs().sort((a,b) => {
+    const va = a[sortKey]||'', vb = b[sortKey]||'';
+    return typeof va==='string' ? va.localeCompare(vb)*sortDir : (va-vb)*sortDir;
+  });
+  document.getElementById('count-parcs').textContent = `(${data.length} parcs)`;
+  document.getElementById('table-parcs').innerHTML = data.map(p => {
+    const bDef = p.defauts<=1 ? `<span class="badge b-green">${p.defauts}</span>` :
+                 p.defauts<=4 ? `<span class="badge b-amber">${p.defauts}</span>` :
+                 `<span class="badge b-red">${p.defauts}</span>`;
+    const bStat = p.statut==='En service' ? `<span class="badge b-green">En service</span>` :
+                  `<span class="badge b-blue">En construction</span>`;
+    return `<tr>
+      <td><div class="td-name">${p.nom}</div></td>
+      <td><div class="td-region">${p.region}</div></td>
+      <td>${p.mw} MW</td><td>${p.nb}</td><td>${p.annee}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="prog-wrap" style="width:60px"><div class="prog-bar" style="width:${(p.dispo-88)/(100-88)*100}%;background:${p.dispo>97?'#639922':p.dispo>94?'#EF9F27':'#E24B4A'}"></div></div>
+          ${p.dispo}%
+        </div>
+      </td>
+      <td>${bDef}</td>
+      <td>${p.cout.toLocaleString('fr-FR')} k€</td>
+      <td>${bStat}</td>
+      <td><button onclick="showDetail(${p.id})" style="background:none;border:1px solid var(--border2);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:var(--text2)">Détail →</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function showDetail(id) {
+  const p = PARCS.find(x=>x.id===id);
+  if(!p) return;
+  const bDef = p.defauts<=1 ? `<span class="badge b-green">${p.defauts} défaut(s)</span>` :
+               p.defauts<=4 ? `<span class="badge b-amber">${p.defauts} défaut(s)</span>` :
+               `<span class="badge b-red">${p.defauts} défaut(s)</span>`;
+  document.getElementById('detail-box').innerHTML = `
+    <div class="detail-header">
+      <div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:4px">${p.nom}</div>
+        <div style="font-size:13px;color:var(--text2)">${p.region} — ${p.dept} · ${p.operateur}</div>
+      </div>
+      <button class="detail-close" onclick="closeDetail()">✕</button>
+    </div>
+    <div class="detail-grid">
+      <div class="detail-field"><div class="detail-field-label">Puissance totale</div><div class="detail-field-value">${p.mw} MW</div></div>
+      <div class="detail-field"><div class="detail-field-label">Nombre d'éoliennes</div><div class="detail-field-value">${p.nb}</div></div>
+      <div class="detail-field"><div class="detail-field-label">Mise en service</div><div class="detail-field-value">${p.annee}</div></div>
+      <div class="detail-field"><div class="detail-field-label">Fin de concession</div><div class="detail-field-value">${p.annee+25}</div></div>
+      <div class="detail-field"><div class="detail-field-label">Disponibilité</div><div class="detail-field-value">${p.dispo}%</div></div>
+      <div class="detail-field"><div class="detail-field-label">Vent moyen</div><div class="detail-field-value">${p.vent} m/s</div></div>
+      <div class="detail-field"><div class="detail-field-label">Défauts 2022–2024</div><div class="detail-field-value">${bDef}</div></div>
+      <div class="detail-field"><div class="detail-field-label">Coût maintenance</div><div class="detail-field-value">${p.cout.toLocaleString('fr-FR')} k€/an</div></div>
+      <div class="detail-field" style="grid-column:span 2"><div class="detail-field-label">Investissement initial</div><div class="detail-field-value">${p.invest.toLocaleString('fr-FR')} M€</div></div>
+    </div>`;
+  document.getElementById('detail-overlay').classList.add('open');
+}
+function closeDetail(e) {
+  if(!e || e.target===document.getElementById('detail-overlay'))
+    document.getElementById('detail-overlay').classList.remove('open');
+}
+
+// ============================================================
+// DÉFAUTS TAB
+// ============================================================
+function initDefauts() {
+  // Défauts par composant
+  dc('c-defcomp');
+  const compDef = {'Pale principale':8,'Multiplicateur':7,'Roulement':6,'Convertisseur':5,'Génératrice':4,'Mât':3,'Transformateur':3,'SCADA':3,'Yaw':2,'Autres':3};
+  charts['c-defcomp'] = new Chart(document.getElementById('c-defcomp'),{
+    type:'bar',
+    data:{ labels:Object.keys(compDef), datasets:[{ data:Object.values(compDef), backgroundColor:'#378ADD99', borderRadius:4, borderSkipped:false }]},
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{ x:{ticks:{font:{size:10}},grid:{color:'rgba(128,128,128,0.1)'}}, y:{ticks:{font:{size:11}}} }}
+  });
+
+  // Gravité
+  dc('c-gravite');
+  charts['c-gravite'] = new Chart(document.getElementById('c-gravite'),{
+    type:'doughnut',
+    data:{ labels:['Critique','Grave','Modérée','Faible'],
+      datasets:[{ data:[6,16,22,16], backgroundColor:['#E24B4A','#EF9F27','#378ADD','#1D9E75'], borderWidth:0, hoverOffset:4 }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:10,padding:8}}} }
+  });
+
+  // Coûts par catégorie
+  dc('c-coutcat');
+  charts['c-coutcat'] = new Chart(document.getElementById('c-coutcat'),{
+    type:'bar',
+    data:{ labels:['Maintenance corrective','Personnel','Assurance','Loyer foncier','Maintenance préventive','Formation/Inspection'],
+      datasets:[{ data:[1285000,863000,745000,320000,480000,85000], backgroundColor:['#E24B4A99','#378ADD99','#7F77DD99','#1D9E7599','#EF9F2799','#88878099'], borderRadius:4, borderSkipped:false }]},
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{ x:{ticks:{font:{size:10}, callback:v=>(v/1000)+'k'}, grid:{color:'rgba(128,128,128,0.1)'}}, y:{ticks:{font:{size:10}}} }}
+  });
+
+  // Durée arrêt
+  dc('c-arret');
+  const arretData = {'Fissure pale':268,'Rupture multiplicateur':360,'Fissure mât':924,'Court-circuit':96,'Roulement':144,'Yaw':168,'Surchauffe':240,'Convertisseur':156};
+  charts['c-arret'] = new Chart(document.getElementById('c-arret'),{
+    type:'bar',
+    data:{ labels:Object.keys(arretData), datasets:[{ data:Object.values(arretData), backgroundColor:'#D85A3099', borderRadius:4, borderSkipped:false }]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{ x:{ticks:{font:{size:9},maxRotation:30}}, y:{ticks:{font:{size:10}},title:{display:true,text:'Heures',font:{size:11}},grid:{color:'rgba(128,128,128,0.1)'}} }}
+  });
+
+  // Table défauts
+  const gMap = {Critique:'b-red',Grave:'b-amber',Modérée:'b-blue',Faible:'b-gray'};
+  document.getElementById('table-defauts').innerHTML = DEFAUTS_DATA.map(d=>`<tr>
+    <td style="font-size:12px;color:var(--text2)">${d.date}</td>
+    <td style="font-weight:500">${d.eol}</td>
+    <td>${d.comp}</td>
+    <td>${d.type}</td>
+    <td><span class="badge ${gMap[d.gravite]||'b-gray'}">${d.gravite}</span></td>
+    <td>${d.arret}h</td>
+    <td>${d.cout.toLocaleString('fr-FR')} €</td>
+    <td style="font-size:12px;color:var(--text2)">${d.cause}</td>
+  </tr>`).join('');
+}
+
+// ============================================================
+// MATÉRIAUX TAB
+// ============================================================
+function initMateriaux() {
+  const matRes = MATIERES.filter(m=>m.resist);
+
+  dc('c-resist');
+  charts['c-resist'] = new Chart(document.getElementById('c-resist'),{
+    type:'bar',
+    data:{ labels:matRes.map(m=>m.nom.replace(' GFRP','').replace(' CFRP','').replace(' S355','').replace(' 316L','').replace(' armé C40','').replace(' à roulement','').replace(' Grade 5','')),
+      datasets:[{ data:matRes.map(m=>m.resist), backgroundColor:matRes.map(m=>m.cat==='Composite'?'#378ADD99':m.cat==='Métallique'?'#1D9E7599':'#EF9F2799'), borderRadius:4, borderSkipped:false }]},
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{ x:{ticks:{font:{size:10}},title:{display:true,text:'MPa',font:{size:10}},grid:{color:'rgba(128,128,128,0.1)'}}, y:{ticks:{font:{size:10}}} }}
+  });
+
+  dc('c-matcat');
+  charts['c-matcat'] = new Chart(document.getElementById('c-matcat'),{
+    type:'doughnut',
+    data:{ labels:['Métallique','Composite','Génie civil','Polymère','Magnétique','Lubrifiant'],
+      datasets:[{ data:[9,3,2,5,2,2], backgroundColor:['#1D9E75','#378ADD','#888780','#EF9F27','#7F77DD','#D85A30'], borderWidth:0, hoverOffset:4 }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:10,padding:6}}} }
+  });
+
+  dc('c-matcout');
+  const matSort = [...MATIERES].sort((a,b)=>b.cout-a.cout).slice(0,10);
+  charts['c-matcout'] = new Chart(document.getElementById('c-matcout'),{
+    type:'bar',
+    data:{ labels:matSort.map(m=>m.nom.split(' ')[0]+' '+m.nom.split(' ')[1]),
+      datasets:[{ data:matSort.map(m=>m.cout), backgroundColor:'#7F77DD99', borderRadius:4, borderSkipped:false }]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{ x:{ticks:{font:{size:9},maxRotation:30}}, y:{ticks:{font:{size:10}},title:{display:true,text:'€/kg',font:{size:10}},grid:{color:'rgba(128,128,128,0.1)'}} }}
+  });
+
+  dc('c-durée');
+  const crit = COMPS_VIE.filter(c=>c.criticite==='Critique');
+  charts['c-durée'] = new Chart(document.getElementById('c-durée'),{
+    type:'bar',
+    data:{ labels:crit.map(c=>c.nom.length>18?c.nom.slice(0,18)+'…':c.nom),
+      datasets:[{ data:crit.map(c=>c.duree), backgroundColor:crit.map(c=>c.duree>=20?'#1D9E7599':c.duree>=15?'#EF9F2799':'#E24B4A99'), borderRadius:4, borderSkipped:false }]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{ x:{ticks:{font:{size:9},maxRotation:30}}, y:{ticks:{font:{size:10}},title:{display:true,text:'Années',font:{size:10}},grid:{color:'rgba(128,128,128,0.1)'}} }}
+  });
+}
+
+// ============================================================
+// TAB SWITCHING
+// ============================================================
+let tabInited = { defauts:false, materiaux:false };
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+
+  if(name==='overview') updateOverview();
+  if(name==='parcs') renderTable();
+  if(name==='defauts' && !tabInited.defauts) { initDefauts(); tabInited.defauts=true; }
+  if(name==='materiaux' && !tabInited.materiaux) { initMateriaux(); tabInited.materiaux=true; }
+}
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  updateOverview();
+  renderTable();
+});
+</script>
+</body>
+</html>
