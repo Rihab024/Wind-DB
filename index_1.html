@@ -1,0 +1,1757 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WindMaterialDB — Dashboard Intelligent</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root {
+  --bg:      #0b0f1a;
+  --surface: #111827;
+  --card:    #161d2e;
+  --border:  #1e2d45;
+  --cyan:    #06b6d4;
+  --cyan2:   #22d3ee;
+  --green:   #10b981;
+  --amber:   #f59e0b;
+  --red:     #ef4444;
+  --violet:  #8b5cf6;
+  --text:    #e2e8f0;
+  --muted:   #64748b;
+  --light:   #94a3b8;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  font-family: 'DM Sans', sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  position: fixed;
+  left: 0; top: 0; bottom: 0;
+  width: 220px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  padding: 0;
+}
+
+.sb-logo {
+  padding: 20px 18px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sb-logo-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+.sb-logo-title span { color: var(--cyan); }
+.sb-logo-title .db  { color: var(--amber); }
+
+.sb-logo-sub {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 3px;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.5px;
+}
+
+.sb-section {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  padding: 14px 18px 6px;
+}
+
+.sb-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 18px;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: all 0.15s;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--light);
+}
+
+.sb-item:hover { background: rgba(6,182,212,0.06); color: #fff; }
+
+.sb-item.active {
+  background: rgba(6,182,212,0.1);
+  border-left-color: var(--cyan);
+  color: var(--cyan);
+}
+
+.sb-icon {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  background: rgba(255,255,255,0.05);
+  flex-shrink: 0;
+}
+
+.sb-item.active .sb-icon { background: rgba(6,182,212,0.15); }
+
+.sb-badge {
+  margin-left: auto;
+  background: rgba(6,182,212,0.15);
+  color: var(--cyan);
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.sb-badge.red { background: rgba(239,68,68,0.15); color: var(--red); }
+
+.sb-footer {
+  margin-top: auto;
+  padding: 14px 18px;
+  border-top: 1px solid var(--border);
+  font-size: 10px;
+  color: var(--muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ── MAIN ── */
+.main {
+  margin-left: 220px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  height: 56px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.topbar-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.topbar-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.tb-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 11px;
+  color: var(--light);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.tb-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ── PAGE CONTENT ── */
+.page {
+  padding: 24px 28px;
+  display: none;
+  animation: fadeIn 0.2s ease;
+}
+
+.page.active { display: block; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── KPI ROW ── */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.kpi {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.kpi:hover { border-color: var(--cyan); }
+
+.kpi::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+}
+
+.kpi.cyan::before   { background: var(--cyan); }
+.kpi.green::before  { background: var(--green); }
+.kpi.amber::before  { background: var(--amber); }
+.kpi.red::before    { background: var(--red); }
+.kpi.violet::before { background: var(--violet); }
+
+.kpi-value {
+  font-family: 'Syne', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.kpi.cyan   .kpi-value { color: var(--cyan); }
+.kpi.green  .kpi-value { color: var(--green); }
+.kpi.amber  .kpi-value { color: var(--amber); }
+.kpi.red    .kpi-value { color: var(--red); }
+.kpi.violet .kpi-value { color: var(--violet); }
+
+.kpi-label {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.kpi-sub {
+  font-size: 10px;
+  color: var(--light);
+  margin-top: 6px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ── SECTION TITLE ── */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.section-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-title::before {
+  content: '';
+  width: 3px; height: 16px;
+  background: var(--cyan);
+  border-radius: 2px;
+}
+
+/* ── GRID LAYOUTS ── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+.grid-21 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px; }
+.grid-12 { display: grid; grid-template-columns: 1fr 2fr; gap: 16px; margin-bottom: 20px; }
+
+/* ── CARD ── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+
+.card-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.card-title span {
+  font-size: 14px;
+}
+
+/* ── CHART WRAPPERS ── */
+.chart-wrap { position: relative; }
+.chart-wrap canvas { display: block; }
+
+/* ── DATA LIST ── */
+.data-list { display: flex; flex-direction: column; gap: 6px; }
+
+.dl-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.05);
+  transition: background 0.15s;
+  cursor: default;
+}
+
+.dl-item:hover { background: rgba(6,182,212,0.06); }
+
+.dl-rank {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  min-width: 18px;
+}
+
+.dl-name { flex: 1; font-size: 12px; font-weight: 600; color: var(--text); line-height: 1.3; }
+.dl-name small { display: block; font-size: 10px; font-weight: 400; color: var(--muted); }
+
+.dl-val {
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.dl-bar-wrap {
+  width: 60px;
+  height: 5px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.dl-bar { height: 100%; border-radius: 3px; }
+
+/* ── BADGE ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.b-cyan   { background: rgba(6,182,212,0.12);  color: var(--cyan); }
+.b-green  { background: rgba(16,185,129,0.12); color: var(--green); }
+.b-amber  { background: rgba(245,158,11,0.12); color: var(--amber); }
+.b-red    { background: rgba(239,68,68,0.12);  color: var(--red); }
+.b-violet { background: rgba(139,92,246,0.12); color: var(--violet); }
+
+/* ── ALERT BOXES ── */
+.alert-box {
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
+  border: 1px solid;
+}
+
+.alert-box.warn  { background: rgba(245,158,11,0.07);  border-color: rgba(245,158,11,0.25); }
+.alert-box.crit  { background: rgba(239,68,68,0.07);   border-color: rgba(239,68,68,0.25); }
+.alert-box.ok    { background: rgba(16,185,129,0.07);  border-color: rgba(16,185,129,0.25); }
+.alert-box.info  { background: rgba(6,182,212,0.07);   border-color: rgba(6,182,212,0.25); }
+
+.alert-icon { font-size: 20px; flex-shrink: 0; }
+
+.alert-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 3px;
+}
+
+.alert-body { font-size: 11px; color: var(--light); line-height: 1.6; }
+
+/* ── ROI TABLE ── */
+.roi-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.roi-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-top: 2px solid var(--amber);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.roi-x {
+  font-family: 'Syne', sans-serif;
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--amber);
+  line-height: 1;
+  text-shadow: 0 0 20px rgba(245,158,11,0.3);
+}
+
+.roi-act { font-size: 12px; font-weight: 700; color: var(--text); margin-top: 4px; line-height: 1.3; }
+.roi-det { font-size: 10px; color: var(--muted); margin-top: 3px; font-family: 'JetBrains Mono', monospace; }
+
+/* ── SCORE BAR ── */
+.score-bar-wrap { margin-bottom: 12px; }
+.score-bar-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+.score-bar-name   { font-size: 12px; font-weight: 600; color: var(--text); }
+.score-bar-val    { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--cyan); }
+.score-track      { height: 8px; background: rgba(255,255,255,0.07); border-radius: 4px; overflow: hidden; }
+.score-fill       { height: 100%; border-radius: 4px; transition: width 1s ease; }
+.score-bar-sub    { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+/* ── TABLE ── */
+.data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.data-table th {
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1px solid var(--border);
+}
+.data-table td { padding: 9px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); color: var(--text); vertical-align: middle; }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: rgba(6,182,212,0.04); }
+
+/* ── PROGRESS RING ── */
+.ring-wrap { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+.ring-label { position: absolute; text-align: center; }
+.ring-num { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: #fff; line-height: 1; }
+.ring-unit { font-size: 10px; color: var(--muted); }
+
+/* ── BIG NUMBER DISPLAY ── */
+.big-stat {
+  text-align: center;
+  padding: 16px 0;
+}
+.big-stat-num {
+  font-family: 'Syne', sans-serif;
+  font-size: 42px;
+  font-weight: 800;
+  color: var(--green);
+  text-shadow: 0 0 30px rgba(16,185,129,0.3);
+  line-height: 1;
+}
+.big-stat-lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-top: 6px; }
+
+/* ── SQL DISPLAY ── */
+.sql-block {
+  background: #0d1117;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #c9d1d9;
+  line-height: 1.7;
+  overflow-x: auto;
+}
+
+.sql-kw  { color: #ff7b72; }
+.sql-fn  { color: #d2a8ff; }
+.sql-tbl { color: #79c0ff; }
+.sql-str { color: #a5d6ff; }
+.sql-num { color: #f8c291; }
+.sql-cmt { color: #8b949e; }
+
+/* ── FILTER BAR ── */
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--light);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.filter-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+.filter-btn.active { background: var(--cyan); border-color: var(--cyan); color: #000; }
+
+/* ── SEVERITY PILL ── */
+.sev-pill {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  margin-right: 4px;
+}
+
+/* pareto indicator */
+.pareto-line {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 1px;
+  background: rgba(245,158,11,0.6);
+  border-left: 1px dashed rgba(245,158,11,0.5);
+  pointer-events: none;
+}
+
+/* tab content */
+.tab-pane { display: none; }
+.tab-pane.show { display: block; }
+
+/* page subtitle */
+.page-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 20px;
+  margin-top: -6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-sub .ps-tag {
+  background: rgba(6,182,212,0.1);
+  color: var(--cyan);
+  border: 1px solid rgba(6,182,212,0.2);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ SIDEBAR ═══════════════════ -->
+<nav class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-logo-title">Wind<span>Material</span><span class="db">DB</span></div>
+    <div class="sb-logo-sub">v2 · SQLite 3.46 · 2025–2026</div>
+  </div>
+
+  <div class="sb-section">Navigation</div>
+
+  <div class="sb-item active" onclick="showPage('vue-generale')">
+    <div class="sb-icon">🏠</div>
+    Vue Générale
+    <span class="sb-badge">KPIs</span>
+  </div>
+
+  <div class="sb-item" onclick="showPage('defauts')">
+    <div class="sb-icon">⚠️</div>
+    Défauts
+    <span class="sb-badge red">200</span>
+  </div>
+
+  <div class="sb-item" onclick="showPage('materiaux')">
+    <div class="sb-icon">🔩</div>
+    Matériaux
+  </div>
+
+  <div class="sb-item" onclick="showPage('economique')">
+    <div class="sb-icon">💰</div>
+    Économique
+  </div>
+
+  <div class="sb-item" onclick="showPage('maintenance')">
+    <div class="sb-icon">🔧</div>
+    Maintenance
+    <span class="sb-badge red">4 crit.</span>
+  </div>
+
+  <div class="sb-item" onclick="showPage('base-sql')">
+    <div class="sb-icon">🗄️</div>
+    Base SQL
+  </div>
+
+  <div class="sb-footer">
+    Harchane Rihab<br>LP GéCLEREE · UPJV<br>Mr Belhadi Jamal
+  </div>
+</nav>
+
+<!-- ═══════════════════ MAIN ═══════════════════ -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="page-title">Vue Générale — WindMaterialDB</div>
+    <div class="topbar-meta">
+      <div class="tb-chip"><div class="tb-dot"></div>Base active · 200 incidents</div>
+      <div class="tb-chip">🇫🇷 Parc éolien français</div>
+      <div class="tb-chip">2020–2024</div>
+    </div>
+  </div>
+
+  <!-- ═══ PAGE 1 : VUE GÉNÉRALE ═══ -->
+  <div id="vue-generale" class="page active">
+    <div class="page-sub">
+      Tableau de bord global WindMaterialDB — 200 incidents documentés, 44 matériaux, 65 modes de défaillance
+      <span class="ps-tag">DMAIC</span>
+      <span class="ps-tag">SQLite 3.46</span>
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi cyan">
+        <div class="kpi-value">200</div>
+        <div class="kpi-label">Incidents terrain</div>
+        <div class="kpi-sub">2020–2024 documentés</div>
+      </div>
+      <div class="kpi amber">
+        <div class="kpi-value">7,9 M€</div>
+        <div class="kpi-label">Coût total réparations</div>
+        <div class="kpi-sub">39 501 €/incident moyen</div>
+      </div>
+      <div class="kpi red">
+        <div class="kpi-value">18 839 h</div>
+        <div class="kpi-label">Temps d'arrêt total</div>
+        <div class="kpi-sub">94,2h / incident moyen</div>
+      </div>
+      <div class="kpi green">
+        <div class="kpi-value">91/100</div>
+        <div class="kpi-label">Score qualité BDD</div>
+        <div class="kpi-sub">0 doublon · 0 NULL critique</div>
+      </div>
+      <div class="kpi violet">
+        <div class="kpi-value">595 733</div>
+        <div class="kpi-label">kWh perdus</div>
+        <div class="kpi-sub">595 TWh manqués total</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title"><span>📊</span> Répartition des 200 incidents par sévérité</div>
+        <div class="chart-wrap" style="height:240px">
+          <canvas id="c-sev"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span>📈</span> Évolution temporelle des coûts (2020–2024)</div>
+        <div class="chart-wrap" style="height:240px">
+          <canvas id="c-evol"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-title"><span>🔴</span> Top 5 composants — Coût total</div>
+        <div class="data-list">
+          <div class="dl-item">
+            <div class="dl-rank">01</div>
+            <div class="dl-name">Bord d'attaque<small>Blade / LeadingEdge</small></div>
+            <div class="dl-bar-wrap"><div class="dl-bar" style="width:100%;background:var(--red)"></div></div>
+            <div class="dl-val" style="color:var(--red)">1,86 M€</div>
+          </div>
+          <div class="dl-item">
+            <div class="dl-rank">02</div>
+            <div class="dl-name">Bord de fuite<small>Blade / TrailingEdge</small></div>
+            <div class="dl-bar-wrap"><div class="dl-bar" style="width:53%;background:var(--amber)"></div></div>
+            <div class="dl-val" style="color:var(--amber)">996 k€</div>
+          </div>
+          <div class="dl-item">
+            <div class="dl-rank">03</div>
+            <div class="dl-name">Racine pale<small>Blade / Root</small></div>
+            <div class="dl-bar-wrap"><div class="dl-bar" style="width:49%;background:var(--amber)"></div></div>
+            <div class="dl-val" style="color:var(--amber)">923 k€</div>
+          </div>
+          <div class="dl-item">
+            <div class="dl-rank">04</div>
+            <div class="dl-name">Mât section basse<small>Tower / LowerSection</small></div>
+            <div class="dl-bar-wrap"><div class="dl-bar" style="width:47%;background:var(--cyan)"></div></div>
+            <div class="dl-val" style="color:var(--cyan)">886 k€</div>
+          </div>
+          <div class="dl-item">
+            <div class="dl-rank">05</div>
+            <div class="dl-name">Rotor générateur<small>Generator / Rotor</small></div>
+            <div class="dl-bar-wrap"><div class="dl-bar" style="width:46%;background:var(--cyan)"></div></div>
+            <div class="dl-val" style="color:var(--cyan)">860 k€</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>🥧</span> Répartition coûts par catégorie</div>
+        <div class="chart-wrap" style="height:220px">
+          <canvas id="c-cat"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>⚡</span> Indicateurs clés de performance</div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="score-bar-wrap">
+            <div class="score-bar-header"><span class="score-bar-name">Score qualité BDD v2</span><span class="score-bar-val">91/100</span></div>
+            <div class="score-track"><div class="score-fill" style="width:91%;background:linear-gradient(90deg,var(--green),var(--cyan))"></div></div>
+            <div class="score-bar-sub">376 doublons corrigés · intégrité 100%</div>
+          </div>
+          <div class="score-bar-wrap">
+            <div class="score-bar-header"><span class="score-bar-name">Incidents critiques</span><span class="score-bar-val">3% / 6 cas</span></div>
+            <div class="score-track"><div class="score-fill" style="width:3%;background:var(--red)"></div></div>
+            <div class="score-bar-sub">Coût moyen 292 708 € · arrêt 955h</div>
+          </div>
+          <div class="score-bar-wrap">
+            <div class="score-bar-header"><span class="score-bar-name">Coûts évitables (corrosion)</span><span class="score-bar-val">23,7%</span></div>
+            <div class="score-track"><div class="score-fill" style="width:23.7%;background:var(--amber)"></div></div>
+            <div class="score-bar-sub">1,87 M€ / an — 100% préventible</div>
+          </div>
+          <div class="score-bar-wrap">
+            <div class="score-bar-header"><span class="score-bar-name">Réduction possible (maintenance préd.)</span><span class="score-bar-val">20–35%</span></div>
+            <div class="score-track"><div class="score-fill" style="width:35%;background:var(--violet)"></div></div>
+            <div class="score-bar-sub">60–120 M€/an économisés sur le parc FR</div>
+          </div>
+          <div class="score-bar-wrap">
+            <div class="score-bar-header"><span class="score-bar-name">Fiabilité sources bibliographiques</span><span class="score-bar-val">82%</span></div>
+            <div class="score-track"><div class="score-fill" style="width:82%;background:var(--cyan)"></div></div>
+            <div class="score-bar-sub">49 sources · 82% niveau « High »</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PAGE 2 : DÉFAUTS ═══ -->
+  <div id="defauts" class="page">
+    <div class="page-sub">
+      Analyse des 200 incidents terrain — corrélation composant ↔ type de défaut ↔ sévérité
+      <span class="ps-tag">65 modes défaillance</span>
+    </div>
+
+    <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi red">
+        <div class="kpi-value">6</div>
+        <div class="kpi-label">Incidents critiques</div>
+        <div class="kpi-sub">293k€ · 955h arrêt moyen</div>
+      </div>
+      <div class="kpi amber">
+        <div class="kpi-value">24</div>
+        <div class="kpi-label">Incidents graves</div>
+        <div class="kpi-sub">128k€ · 306h arrêt moyen</div>
+      </div>
+      <div class="kpi cyan">
+        <div class="kpi-value">60</div>
+        <div class="kpi-label">Incidents modérés</div>
+        <div class="kpi-sub">36k€ · 72h arrêt moyen</div>
+      </div>
+      <div class="kpi green">
+        <div class="kpi-value">110</div>
+        <div class="kpi-label">Incidents faibles</div>
+        <div class="kpi-sub">8k€ · 13h arrêt moyen</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title"><span>📊</span> Défauts par composant — Fréquence</div>
+        <div class="chart-wrap" style="height:280px">
+          <canvas id="c-defcomp"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span>⏱️</span> Durée d'arrêt par type de défaut (heures)</div>
+        <div class="chart-wrap" style="height:280px">
+          <canvas id="c-arret"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-21">
+      <div class="card">
+        <div class="card-title"><span>📋</span> Historique des 10 défauts les plus coûteux</div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Mode de défaillance</th>
+              <th>Catégorie</th>
+              <th>Nb incidents</th>
+              <th>Coût total</th>
+              <th>Sévérité</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Corrosion système yaw</td><td><span class="badge b-cyan">Environnemental</span></td><td>18</td><td style="color:var(--red);font-weight:700">988 433 €</td><td><span class="sev-pill" style="background:var(--amber)"></span>High</td></tr>
+            <tr><td>Corrosion mât (Tower Corrosion)</td><td><span class="badge b-cyan">Environnemental</span></td><td>10</td><td style="color:var(--red);font-weight:700">886 449 €</td><td><span class="sev-pill" style="background:var(--amber)"></span>High</td></tr>
+            <tr><td>Usure frein yaw (Yaw Brake Wear)</td><td><span class="badge b-amber">Mécanique</span></td><td>14</td><td style="color:var(--amber);font-weight:700">846 490 €</td><td><span class="sev-pill" style="background:var(--amber)"></span>Medium</td></tr>
+            <tr><td>Érosion bout pale (Blade Tip)</td><td><span class="badge b-amber">Mécanique</span></td><td>13</td><td style="color:var(--amber);font-weight:700">649 806 €</td><td><span class="sev-pill" style="background:var(--amber)"></span>Medium</td></tr>
+            <tr><td>Défaillance bobinage (Winding)</td><td><span class="badge b-red">Électrique</span></td><td>13</td><td style="color:var(--red);font-weight:700">626 836 €</td><td><span class="sev-pill" style="background:var(--red)"></span>Critical</td></tr>
+            <tr><td>Érosion bord d'attaque (LEE)</td><td><span class="badge b-amber">Mécanique</span></td><td>17</td><td style="color:var(--amber);font-weight:700">577 679 €</td><td><span class="sev-pill" style="background:var(--green)"></span>Low</td></tr>
+            <tr><td>Rupture engrenage (Gear Tooth)</td><td><span class="badge b-amber">Mécanique</span></td><td>14</td><td style="color:var(--amber);font-weight:700">459 327 €</td><td><span class="sev-pill" style="background:var(--red)"></span>Critical</td></tr>
+            <tr><td>Fissure arbre générateur</td><td><span class="badge b-amber">Mécanique</span></td><td>17</td><td style="color:var(--cyan);font-weight:700">386 633 €</td><td><span class="sev-pill" style="background:var(--amber)"></span>High</td></tr>
+            <tr><td>Panne capteur SCADA</td><td><span class="badge b-violet">Contrôle</span></td><td>14</td><td style="color:var(--cyan);font-weight:700">342 652 €</td><td><span class="sev-pill" style="background:var(--green)"></span>Low</td></tr>
+            <tr><td>Défaut moteur Pitch</td><td><span class="badge b-red">Électrique</span></td><td>1</td><td style="color:var(--red);font-weight:700">440 027 €</td><td><span class="sev-pill" style="background:var(--red)"></span>Critical</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>🎯</span> Distribution par catégorie</div>
+        <div class="chart-wrap" style="height:200px">
+          <canvas id="c-deftype"></canvas>
+        </div>
+        <div style="margin-top:12px;display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--muted)">Mécanique</span><span style="color:var(--text);font-weight:600">104 · 52% · 35 777 €/inc</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--muted)">Environnemental</span><span style="color:var(--text);font-weight:600">47 · 24% · 49 565 €/inc</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--muted)">Électrique</span><span style="color:var(--text);font-weight:600">20 · 10% · 57 027 €/inc</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--muted)">Contrôle</span><span style="color:var(--text);font-weight:600">19 · 10% · 26 932 €/inc</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--muted)">Tribologique</span><span style="color:var(--text);font-weight:600">10 · 5% · 19 755 €/inc</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PAGE 3 : MATÉRIAUX ═══ -->
+  <div id="materiaux" class="page">
+    <div class="page-sub">
+      Analyse croisée matériaux ↔ défauts ↔ coûts — 44 matériaux catalogués
+      <span class="ps-tag">44 matériaux</span>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title"><span>🧪</span> Résistance mécanique par matériau (MPa)</div>
+        <div class="chart-wrap" style="height:280px">
+          <canvas id="c-resist"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span>💶</span> Coût au kg des matériaux critiques (€/kg)</div>
+        <div class="chart-wrap" style="height:280px">
+          <canvas id="c-matcout"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-title"><span>⚠️</span> Matériaux les plus critiques (coût moyen/incident)</div>
+        <div class="data-list">
+          <div class="dl-item"><div class="dl-rank">01</div><div class="dl-name">Lubrifiant ISO VG220<small>Lubricant · 1 incident · 100% graves</small></div><div class="dl-val" style="color:var(--red)">440k€</div></div>
+          <div class="dl-item"><div class="dl-rank">02</div><div class="dl-name">Résine époxy<small>Polymère · 5 incidents · 40% graves</small></div><div class="dl-val" style="color:var(--red)">97k€</div></div>
+          <div class="dl-item"><div class="dl-rank">03</div><div class="dl-name">Isolant Classe F<small>Isolant · 67% incidents graves</small></div><div class="dl-val" style="color:var(--red)">96k€</div></div>
+          <div class="dl-item"><div class="dl-rank">04</div><div class="dl-name">Caoutchouc EPDM<small>Polymère · 384h arrêt moyen</small></div><div class="dl-val" style="color:var(--amber)">88k€</div></div>
+          <div class="dl-item"><div class="dl-rank">05</div><div class="dl-name">Acier S355NL<small>Métallique · zones côtières & altitude</small></div><div class="dl-val" style="color:var(--amber)">74k€</div></div>
+          <div class="dl-item"><div class="dl-rank">06</div><div class="dl-name">Kevlar composite<small>Composite · 9 incidents</small></div><div class="dl-val" style="color:var(--cyan)">58k€</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>🏷️</span> Répartition par catégorie de matériau</div>
+        <div class="chart-wrap" style="height:220px">
+          <canvas id="c-matcat"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>⏳</span> Durée de vie des composants critiques (années)</div>
+        <div class="chart-wrap" style="height:220px">
+          <canvas id="c-duree"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span>🔗</span> Corrélation matériau ↔ mode de défaillance ↔ coût</div>
+      <table class="data-table">
+        <thead>
+          <tr><th>Composant</th><th>Matériau dominant</th><th>Mode de défaillance</th><th>Mécanisme physique</th><th>Durée de vie</th><th>Coût moyen réparation</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Pale (structure)</td><td>GFRP Époxy</td><td>Délaminage · Érosion</td><td>Fatigue cyclique · Humidité</td><td><span class="badge b-green">20–25 ans</span></td><td style="color:var(--amber)">35 000 €</td></tr>
+          <tr><td>Bord d'attaque</td><td>Gelcoat / Polyuréthane</td><td>Érosion (pluie · UV)</td><td>Impact gouttes à 70–85m/s</td><td><span class="badge b-red">7–10 ans</span></td><td style="color:var(--red)">25 000 €/pale</td></tr>
+          <tr><td>Multiplicateur</td><td>Acier 18CrNiMo7-6</td><td>Pitting · Rupture denture</td><td>Fatigue contact Hertz</td><td><span class="badge b-amber">10–20 ans</span></td><td style="color:var(--red)">150 000 €</td></tr>
+          <tr><td>Roulement principal</td><td>Acier 100Cr6</td><td>Écaillage · Fatigue</td><td>Fatigue sous-surface</td><td><span class="badge b-red">5–15 ans</span></td><td style="color:var(--red)">95 000 €</td></tr>
+          <tr><td>Bobinage générateur</td><td>Cuivre + Polyimide</td><td>Vieillissement isolant</td><td>Cycles thermiques</td><td><span class="badge b-amber">15–25 ans</span></td><td style="color:var(--amber)">55 000 €</td></tr>
+          <tr><td>Mât acier</td><td>Acier S355J2+N</td><td>Corrosion · Fissures soudure</td><td>Humidité · Fatigue flexion</td><td><span class="badge b-green">25–30 ans</span></td><td style="color:var(--cyan)">65 000 €</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══ PAGE 4 : ÉCONOMIQUE ═══ -->
+  <div id="economique" class="page">
+    <div class="page-sub">
+      Analyse économique complète — coûts de maintenance, ROI préventif, Pareto
+      <span class="ps-tag">7,9 M€ analysés</span>
+    </div>
+
+    <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi amber">
+        <div class="kpi-value">7,9 M€</div>
+        <div class="kpi-label">Coût total réparations</div>
+        <div class="kpi-sub">200 incidents · 2020–2024</div>
+      </div>
+      <div class="kpi red">
+        <div class="kpi-value">23,7%</div>
+        <div class="kpi-label">Coûts évitables</div>
+        <div class="kpi-sub">Corrosion — 100% préventible</div>
+      </div>
+      <div class="kpi green">
+        <div class="kpi-value">×14</div>
+        <div class="kpi-label">Meilleur ROI préventif</div>
+        <div class="kpi-sub">Protection bord d'attaque (LEP)</div>
+      </div>
+      <div class="kpi violet">
+        <div class="kpi-value">120 M€</div>
+        <div class="kpi-label">Économies potentielles/an</div>
+        <div class="kpi-sub">Sur le parc éolien français</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title"><span>📊</span> Analyse Pareto — Coûts par composant</div>
+        <div class="chart-wrap" style="height:280px">
+          <canvas id="c-pareto"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span>⚖️</span> Coût préventif vs correctif</div>
+        <div class="chart-wrap" style="height:280px">
+          <canvas id="c-prevcorr"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-12">
+      <div class="card">
+        <div class="card-title"><span>🎯</span> ROI des actions préventives</div>
+        <div class="roi-grid">
+          <div class="roi-card">
+            <div class="roi-x">×14</div>
+            <div class="roi-act">Protection bord d'attaque (LEP)</div>
+            <div class="roi-det">2 500 €/an → évite 33 981 €/incident</div>
+          </div>
+          <div class="roi-card">
+            <div class="roi-x">×6</div>
+            <div class="roi-act">Inspection ultrasons pale annuelle</div>
+            <div class="roi-det">8 000 €/an → évite 49 985 €/incident</div>
+          </div>
+          <div class="roi-card">
+            <div class="roi-x">×4</div>
+            <div class="roi-act">Anticorrosion mât annuel</div>
+            <div class="roi-det">20 000 €/an → évite 88 645 €/incident</div>
+          </div>
+          <div class="roi-card">
+            <div class="roi-x">×3</div>
+            <div class="roi-act">Surveillance vibratoire générateur</div>
+            <div class="roi-det">15 000 €/an → évite 39 085 €/incident</div>
+          </div>
+        </div>
+        <div style="margin-top:12px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:8px;padding:12px;text-align:center">
+          <div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--green)">60 – 120 M€ / AN</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">économisés sur le parc français par maintenance prédictive (réduction 20–35% des coûts O&M)</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>📈</span> Évolution coût moyen par incident</div>
+        <div class="chart-wrap" style="height:220px">
+          <canvas id="c-evol2"></canvas>
+        </div>
+        <div style="margin-top:12px">
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px">
+            <span style="color:var(--muted)">2021 — pic incidents (COVID maintenance)</span>
+            <span style="color:var(--red);font-weight:700">47 incidents · 45 162 €/inc</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px">
+            <span style="color:var(--muted)">2022 — généralisation maintenance préventive</span>
+            <span style="color:var(--green);font-weight:700">33 incidents · 26 477 €/inc ↓</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:11px">
+            <span style="color:var(--muted)">2024 — meilleure détection précoce</span>
+            <span style="color:var(--green);font-weight:700">41 incidents · 25 794 €/inc ↓</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PAGE 5 : MAINTENANCE INTELLIGENTE ═══ -->
+  <div id="maintenance" class="page">
+    <div class="page-sub">
+      Aide à la décision maintenance — composants à surveiller, recommandations, priorisation risques
+      <span class="ps-tag">35 recommandations</span>
+      <span class="ps-tag">4 priorité CRITICAL</span>
+    </div>
+
+    <div class="alert-box crit">
+      <div class="alert-icon">🚨</div>
+      <div>
+        <div class="alert-title">4 recommandations de priorité CRITIQUE — Action immédiate requise</div>
+        <div class="alert-body">Foundation Crack · Rupture engrenage · Usure roulement pitch · Fissure racine pale — Ces défauts peuvent provoquer des arrêts de 14 à 90 jours et des coûts de 18 000 à 145 000 €</div>
+      </div>
+    </div>
+
+    <div class="alert-box warn">
+      <div class="alert-icon">⚠️</div>
+      <div>
+        <div class="alert-title">23,7 % des coûts dus à la corrosion — entièrement préventible</div>
+        <div class="alert-body">Yaw System Corrosion (988 433 €) + Tower Corrosion (886 449 €) = 1 874 882 € sur 28 incidents. Une inspection annuelle à 20 000 €/an évite ces coûts avec un ROI de ×4</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title"><span>🔧</span> Composants à surveiller — Score de criticité</div>
+        <div class="chart-wrap" style="height:260px">
+          <canvas id="c-criticite"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span>📅</span> Matrice risque — Fréquence × Coût</div>
+        <div class="chart-wrap" style="height:260px">
+          <canvas id="c-matrice"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title"><span>📋</span> Plan de maintenance recommandé — WindMaterialDB</div>
+      <table class="data-table">
+        <thead>
+          <tr><th>Priorité</th><th>Défaut ciblé</th><th>Composant</th><th>Action recommandée</th><th>Fréquence</th><th>Coût action</th><th>Coût évité</th><th>ROI</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge b-red">CRITICAL</span></td>
+            <td>Foundation Crack</td>
+            <td>Fondation / Monopile</td>
+            <td>Inspection géotechnique + monitoring</td>
+            <td>Annuelle</td>
+            <td>50 000 €</td>
+            <td>500 000 €</td>
+            <td style="color:var(--green);font-weight:700">×10</td>
+          </tr>
+          <tr>
+            <td><span class="badge b-red">CRITICAL</span></td>
+            <td>Rupture engrenage</td>
+            <td>Gearbox / Planetary</td>
+            <td>Analyse huile mensuelle (ferrographie)</td>
+            <td>Mensuelle</td>
+            <td>25 000 €</td>
+            <td>150 000 €</td>
+            <td style="color:var(--green);font-weight:700">×6</td>
+          </tr>
+          <tr>
+            <td><span class="badge b-red">CRITICAL</span></td>
+            <td>Usure roulement pitch</td>
+            <td>MainBearing / Roller</td>
+            <td>Surveillance T° continue + CMS vibratoire</td>
+            <td>Continue</td>
+            <td>18 000 €</td>
+            <td>95 000 €</td>
+            <td style="color:var(--green);font-weight:700">×5</td>
+          </tr>
+          <tr>
+            <td><span class="badge b-red">CRITICAL</span></td>
+            <td>Fissure racine pale</td>
+            <td>Blade / Root</td>
+            <td>Radiographie / ultrasons biennaux</td>
+            <td>Biennale</td>
+            <td>18 000 €</td>
+            <td>185 000 €</td>
+            <td style="color:var(--green);font-weight:700">×10</td>
+          </tr>
+          <tr>
+            <td><span class="badge b-amber">HIGH</span></td>
+            <td>Érosion bord d'attaque</td>
+            <td>Blade / LeadingEdge</td>
+            <td>Bande sacrificielle LEP + inspection drone</td>
+            <td>Semestrielle</td>
+            <td>2 500 €</td>
+            <td>33 981 €</td>
+            <td style="color:var(--amber);font-weight:700">×14</td>
+          </tr>
+          <tr>
+            <td><span class="badge b-amber">HIGH</span></td>
+            <td>Corrosion yaw + mât</td>
+            <td>Mât / Yaw System</td>
+            <td>Inspection anticorrosion + repiquage</td>
+            <td>Annuelle</td>
+            <td>20 000 €</td>
+            <td>88 645 €</td>
+            <td style="color:var(--amber);font-weight:700">×4</td>
+          </tr>
+          <tr>
+            <td><span class="badge b-cyan">MEDIUM</span></td>
+            <td>Défaillance bobinage</td>
+            <td>Generator / Stator</td>
+            <td>Monitoring thermique + test isolation</td>
+            <td>Semestrielle</td>
+            <td>15 000 €</td>
+            <td>55 000 €</td>
+            <td style="color:var(--cyan);font-weight:700">×3,6</td>
+          </tr>
+          <tr>
+            <td><span class="badge b-cyan">MEDIUM</span></td>
+            <td>Panne capteur SCADA</td>
+            <td>SCADA / Contrôle</td>
+            <td>Calibration semestrielle + test redondance</td>
+            <td>Semestrielle</td>
+            <td>6 000 €</td>
+            <td>24 475 €</td>
+            <td style="color:var(--cyan);font-weight:700">×4</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid-3">
+      <div class="alert-box ok" style="margin-bottom:0">
+        <div class="alert-icon">💡</div>
+        <div>
+          <div class="alert-title">Court terme (0–6 mois)</div>
+          <div class="alert-body">Mettre en place les 4 actions CRITICAL · Déployer CMS vibratoire sur roulements · Former les techniciens à l'analyse d'huile</div>
+        </div>
+      </div>
+      <div class="alert-box info" style="margin-bottom:0">
+        <div class="alert-icon">🚀</div>
+        <div>
+          <div class="alert-title">Moyen terme (6–18 mois)</div>
+          <div class="alert-body">PostgreSQL multi-utilisateurs · Pipeline SCADA temps réel · API REST Python · Interface web accessible aux techniciens terrain</div>
+        </div>
+      </div>
+      <div class="alert-box" style="margin-bottom:0;background:rgba(139,92,246,0.07);border-color:rgba(139,92,246,0.25)">
+        <div class="alert-icon">🤖</div>
+        <div>
+          <div class="alert-title">Long terme (18 mois+)</div>
+          <div class="alert-body">Machine Learning (Random Forest · XGBoost) · Prédiction défaillances · Maintenance prédictive IA · Industrie 4.0 éolien</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PAGE 6 : BASE SQL ═══ -->
+  <div id="base-sql" class="page">
+    <div class="page-sub">
+      Architecture WindMaterialDB v2 — 8 tables · 9 clés étrangères · 15 index · score qualité 91/100
+      <span class="ps-tag">SQLite 3.46</span>
+      <span class="ps-tag">DMAIC</span>
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi cyan"><div class="kpi-value">8</div><div class="kpi-label">Tables SQL</div><div class="kpi-sub">Schéma en étoile</div></div>
+      <div class="kpi green"><div class="kpi-value">9</div><div class="kpi-label">Clés étrangères</div><div class="kpi-sub">Intégrité 100%</div></div>
+      <div class="kpi amber"><div class="kpi-value">15</div><div class="kpi-label">Index performance</div><div class="kpi-sub">Requêtes optimisées</div></div>
+      <div class="kpi violet"><div class="kpi-value">18</div><div class="kpi-label">Contraintes CHECK</div><div class="kpi-sub">Données validées</div></div>
+      <div class="kpi red"><div class="kpi-value">376</div><div class="kpi-label">Doublons supprimés</div><div class="kpi-sub">v1 → v2 audit</div></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title"><span>🗄️</span> Structure des 8 tables — WindMaterialDB</div>
+        <div class="data-list">
+          <div class="dl-item"><div class="dl-rank">★</div><div class="dl-name">Defect_Instances<small>Table de faits centrale — 200 incidents terrain</small></div><div class="dl-val" style="color:var(--amber)">200 lignes</div></div>
+          <div class="dl-item"><div class="dl-rank">01</div><div class="dl-name">TurbineModels<small>41 modèles uniques (Vestas, GE, Siemens...)</small></div><div class="dl-val" style="color:var(--cyan)">41 lignes</div></div>
+          <div class="dl-item"><div class="dl-rank">02</div><div class="dl-name">Components<small>38 composants uniques avec sensibilité défauts</small></div><div class="dl-val" style="color:var(--cyan)">38 lignes</div></div>
+          <div class="dl-item"><div class="dl-rank">03</div><div class="dl-name">Materials<small>44 matériaux (métal, composite, polymère...)</small></div><div class="dl-val" style="color:var(--cyan)">44 lignes</div></div>
+          <div class="dl-item"><div class="dl-rank">04</div><div class="dl-name">DefectTypes<small>65 types de défauts uniques catalogués</small></div><div class="dl-val" style="color:var(--cyan)">65 lignes</div></div>
+          <div class="dl-item"><div class="dl-rank">05</div><div class="dl-name">Recommandations<small>35 recommandations — 4 CRITICAL, 17 HIGH</small></div><div class="dl-val" style="color:var(--green)">35 lignes</div></div>
+          <div class="dl-item"><div class="dl-rank">06</div><div class="dl-name">Sources<small>49 références bibliographiques qualifiées</small></div><div class="dl-val" style="color:var(--green)">49 lignes</div></div>
+          <div class="dl-item"><div class="dl-rank">07</div><div class="dl-name">Model_Component_Material<small>2 000 associations N:M modèle↔composant↔matériau</small></div><div class="dl-val" style="color:var(--violet)">2 000 lignes</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>💻</span> Requêtes SQL — Analyses clés</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+
+          <div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:1px">Requête 1 — Top 5 composants les plus coûteux</div>
+            <div class="sql-block">
+<span class="sql-kw">SELECT</span> c.Name <span class="sql-str">|| '/' ||</span> c.Subcomponent <span class="sql-kw">AS</span> Composant,<br>
+&nbsp;&nbsp;<span class="sql-fn">COUNT</span>(di.DefectInstanceID) <span class="sql-kw">AS</span> NbIncidents,<br>
+&nbsp;&nbsp;<span class="sql-fn">ROUND</span>(<span class="sql-fn">SUM</span>(di.RepairCost_EUR), <span class="sql-num">0</span>) <span class="sql-kw">AS</span> CoutTotal_EUR<br>
+<span class="sql-kw">FROM</span> <span class="sql-tbl">Defect_Instances</span> di<br>
+<span class="sql-kw">JOIN</span> <span class="sql-tbl">Components</span> c <span class="sql-kw">ON</span> di.ComponentID = c.ComponentID<br>
+<span class="sql-kw">GROUP BY</span> c.ComponentID<br>
+<span class="sql-kw">ORDER BY</span> CoutTotal_EUR <span class="sql-kw">DESC LIMIT</span> <span class="sql-num">5</span>;
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:1px">Requête 2 — Matériaux par coût moyen</div>
+            <div class="sql-block">
+<span class="sql-kw">SELECT</span> m.Name, m.Category,<br>
+&nbsp;&nbsp;<span class="sql-fn">COUNT</span>(di.DefectInstanceID) <span class="sql-kw">AS</span> NbIncidents,<br>
+&nbsp;&nbsp;<span class="sql-fn">ROUND</span>(<span class="sql-fn">AVG</span>(di.RepairCost_EUR), <span class="sql-num">0</span>) <span class="sql-kw">AS</span> CoutMoyen<br>
+<span class="sql-kw">FROM</span> <span class="sql-tbl">Materials</span> m<br>
+<span class="sql-kw">JOIN</span> <span class="sql-tbl">Defect_Instances</span> di <span class="sql-kw">ON</span> m.MaterialID = di.MaterialID<br>
+<span class="sql-kw">GROUP BY</span> m.MaterialID<br>
+<span class="sql-kw">ORDER BY</span> CoutMoyen <span class="sql-kw">DESC LIMIT</span> <span class="sql-num">5</span>;
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:1px">Requête 3 — Tableau de bord global</div>
+            <div class="sql-block">
+<span class="sql-kw">SELECT</span> * <span class="sql-kw">FROM</span> <span class="sql-tbl">vw_Dashboard</span>;<br>
+<span class="sql-cmt">-- Retourne : 200 incidents, 6 critiques,</span><br>
+<span class="sql-cmt">-- 7 900 182 € coûts, 18 839h arrêts,</span><br>
+<span class="sql-cmt">-- 595 733 kWh pertes production</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span>✅</span> Résultats contrôle qualité — WindMaterialDB v2</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Intégrité des données</div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="color:var(--green)">✅</span> 0 orphelin sur 9 vérifications FK</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="color:var(--green)">✅</span> 0 doublon après contraintes UNIQUE</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="color:var(--green)">✅</span> 0 NULL sur colonnes critiques</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="color:var(--green)">✅</span> 100% cohérence domaine (CHECK)</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="color:var(--amber)">⭐</span> Score qualité global : <strong style="color:var(--amber)">91/100</strong></div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">8 Vues analytiques</div>
+          <div style="display:flex;flex-direction:column;gap:5px;font-size:11px;color:var(--light)">
+            <div>📊 vw_Dashboard — Tableau de bord global</div>
+            <div>🔍 vw_Defect_Analysis — Jointure 5 tables</div>
+            <div>⚠️ vw_Critical_Materials — Matériaux critiques</div>
+            <div>🔩 vw_Component_Risk — Score de criticité</div>
+            <div>💡 vw_Recommendations_Analysis — ROI</div>
+            <div>📚 vw_Recent_Sources — Sources 2020+</div>
+            <div>📈 vw_Sources_By_Type — Qualité données</div>
+            <div>📅 vw_Sources_By_Year — Actualité</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Méthodologie DMAIC</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="background:rgba(6,182,212,0.06);border-left:2px solid var(--cyan);padding:5px 9px;border-radius:0 4px 4px 0;font-size:11px"><strong style="color:var(--cyan)">D</strong>efine — Périmètre & ontologie MERISE</div>
+            <div style="background:rgba(6,182,212,0.06);border-left:2px solid var(--cyan);padding:5px 9px;border-radius:0 4px 4px 0;font-size:11px"><strong style="color:var(--cyan)">M</strong>easure — 49 sources · 82% fiabilité High</div>
+            <div style="background:rgba(6,182,212,0.06);border-left:2px solid var(--cyan);padding:5px 9px;border-radius:0 4px 4px 0;font-size:11px"><strong style="color:var(--cyan)">A</strong>nalyze — SQLite · 18 CHECK · 15 index</div>
+            <div style="background:rgba(245,158,11,0.06);border-left:2px solid var(--amber);padding:5px 9px;border-radius:0 4px 4px 0;font-size:11px"><strong style="color:var(--amber)">I</strong>mprove — 376 doublons supprimés · v2</div>
+            <div style="background:rgba(16,185,129,0.06);border-left:2px solid var(--green);padding:5px 9px;border-radius:0 4px 4px 0;font-size:11px"><strong style="color:var(--green)">C</strong>ontrol — Score 91/100 · vérification FK</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ──────────── NAVIGATION ────────────
+var pages = ['vue-generale','defauts','materiaux','economique','maintenance','base-sql'];
+var titles = {
+  'vue-generale': 'Vue Générale — WindMaterialDB',
+  'defauts':      'Analyse des Défauts — 200 incidents',
+  'materiaux':    'Analyse Matériaux — 44 matériaux catalogués',
+  'economique':   'Analyse Économique — ROI & Pareto',
+  'maintenance':  'Maintenance Intelligente — Aide à la Décision',
+  'base-sql':     'Base de données SQL — Architecture WindMaterialDB'
+};
+
+var chartsInited = {};
+
+function showPage(id) {
+  pages.forEach(function(p) {
+    document.getElementById(p).classList.remove('active');
+  });
+  document.querySelectorAll('.sb-item').forEach(function(el) {
+    el.classList.remove('active');
+  });
+
+  document.getElementById(id).classList.add('active');
+  event.currentTarget.classList.add('active');
+  document.getElementById('page-title').textContent = titles[id];
+
+  if (!chartsInited[id]) {
+    chartsInited[id] = true;
+    setTimeout(function() { initCharts(id); }, 50);
+  }
+}
+
+// ──────────── CHART DEFAULTS ────────────
+Chart.defaults.color = '#64748b';
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+Chart.defaults.font.size = 11;
+
+var C = {
+  cyan:   '#06b6d4',
+  cyan2:  '#22d3ee',
+  green:  '#10b981',
+  amber:  '#f59e0b',
+  red:    '#ef4444',
+  violet: '#8b5cf6',
+  border: '#1e2d45',
+  muted:  '#64748b'
+};
+
+function mkChart(id, cfg) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  return new Chart(el, cfg);
+}
+
+function gridOpts(axis) {
+  return { color: 'rgba(30,45,69,0.8)' };
+}
+
+// ──────────── INIT CHARTS ────────────
+function initCharts(page) {
+
+  if (page === 'vue-generale') {
+
+    // Sévérité
+    mkChart('c-sev', {
+      type: 'bar',
+      data: {
+        labels: ['Critique', 'Grave', 'Modéré', 'Faible'],
+        datasets: [{
+          label: 'Incidents',
+          data: [6, 24, 60, 110],
+          backgroundColor: [C.red+'cc', C.amber+'cc', C.cyan+'cc', C.green+'cc'],
+          borderRadius: 6, borderSkipped: false
+        }, {
+          label: 'Coût moyen (k€)',
+          data: [293, 128, 36, 8],
+          backgroundColor: [C.red+'44', C.amber+'44', C.cyan+'44', C.green+'44'],
+          borderRadius: 6, borderSkipped: false,
+          yAxisID: 'y2'
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'top', labels: { boxWidth: 12 } } },
+        scales: {
+          x: { grid: gridOpts() },
+          y: { grid: gridOpts(), title: { display: true, text: 'Nb incidents' } },
+          y2: { position: 'right', grid: { display: false }, title: { display: true, text: 'Coût moyen (k€)' } }
+        }
+      }
+    });
+
+    // Évolution
+    mkChart('c-evol', {
+      type: 'line',
+      data: {
+        labels: ['2020', '2021', '2022', '2023', '2024'],
+        datasets: [{
+          label: 'Nb incidents',
+          data: [40, 47, 33, 39, 41],
+          borderColor: C.cyan, backgroundColor: C.cyan+'22',
+          tension: 0.4, fill: true, pointRadius: 5
+        }, {
+          label: 'Coût total (k€)',
+          data: [1896, 2123, 874, 1950, 1058],
+          borderColor: C.amber, backgroundColor: C.amber+'11',
+          tension: 0.4, fill: true, pointRadius: 5,
+          yAxisID: 'y2'
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'top', labels: { boxWidth: 12 } } },
+        scales: {
+          x: { grid: gridOpts() },
+          y: { grid: gridOpts(), title: { display: true, text: 'Incidents' } },
+          y2: { position: 'right', grid: { display: false }, title: { display: true, text: 'Coût (k€)' } }
+        }
+      }
+    });
+
+    // Catégories
+    mkChart('c-cat', {
+      type: 'doughnut',
+      data: {
+        labels: ['Mécanique', 'Environnemental', 'Électrique', 'Contrôle', 'Tribologique'],
+        datasets: [{
+          data: [3721, 2330, 1141, 512, 197],
+          backgroundColor: [C.amber+'cc', C.cyan+'cc', C.red+'cc', C.violet+'cc', C.green+'cc'],
+          borderWidth: 0, hoverOffset: 6
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'right', labels: { boxWidth: 10, padding: 8, font: { size: 10 } } },
+          tooltip: { callbacks: { label: function(c) { return c.label + ': ' + Math.round(c.raw/1000) + ' k€'; }}}
+        },
+        cutout: '60%'
+      }
+    });
+  }
+
+  if (page === 'defauts') {
+
+    mkChart('c-defcomp', {
+      type: 'bar',
+      data: {
+        labels: ['Blade/LeadingEdge', 'Blade/Root', 'Blade/TrailingEdge', 'Tower/LowerSec', 'Generator/Rot', 'MainBearing', 'Gearbox/Plan', 'PitchSystem'],
+        datasets: [{
+          label: 'Nb incidents',
+          data: [29, 27, 26, 23, 22, 17, 15, 13],
+          backgroundColor: [C.red+'cc', C.red+'99', C.amber+'cc', C.cyan+'cc', C.cyan+'99', C.green+'cc', C.green+'99', C.violet+'cc'],
+          borderRadius: 6, borderSkipped: false
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: gridOpts() },
+          y: { grid: { display: false }, ticks: { font: { size: 10 } } }
+        }
+      }
+    });
+
+    mkChart('c-arret', {
+      type: 'bar',
+      data: {
+        labels: ['Fissure mât', 'Rupture mult.', 'Fissure pale', 'Convertisseur', 'Yaw brake', 'Roulement', 'Erosion pale', 'SCADA'],
+        datasets: [{
+          label: 'Heures arrêt',
+          data: [924, 360, 268, 240, 168, 144, 132, 96],
+          backgroundColor: [C.red+'cc', C.red+'99', C.amber+'cc', C.amber+'99', C.cyan+'cc', C.cyan+'99', C.green+'cc', C.green+'99'],
+          borderRadius: 6, borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: gridOpts(), ticks: { font: { size: 10 }, maxRotation: 30 } },
+          y: { grid: gridOpts(), title: { display: true, text: 'Heures' } }
+        }
+      }
+    });
+
+    mkChart('c-deftype', {
+      type: 'pie',
+      data: {
+        labels: ['Mécanique', 'Environnemental', 'Électrique', 'Contrôle', 'Tribologique'],
+        datasets: [{
+          data: [104, 47, 20, 19, 10],
+          backgroundColor: [C.amber+'cc', C.cyan+'cc', C.red+'cc', C.violet+'cc', C.green+'cc'],
+          borderWidth: 0, hoverOffset: 6
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'right', labels: { boxWidth: 10, padding: 6, font: { size: 10 } } }
+        }
+      }
+    });
+  }
+
+  if (page === 'materiaux') {
+
+    mkChart('c-resist', {
+      type: 'bar',
+      data: {
+        labels: ['Acier roulmt', 'Inconel 718', 'Titane Gr5', 'Acier inox', 'Acier S355', 'CFRP UD', 'Fonte GJS', 'Alum 6061', 'GFRP', 'Epoxy'],
+        datasets: [{
+          label: 'Résistance (MPa)',
+          data: [1500, 1240, 950, 570, 500, 1800, 400, 310, 350, 80],
+          backgroundColor: [C.cyan+'cc', C.violet+'cc', C.amber+'cc', C.green+'cc', C.green+'99', C.red+'cc', C.muted+'cc', C.cyan+'77', C.amber+'77', C.muted+'55'],
+          borderRadius: 6, borderSkipped: false
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: gridOpts(), title: { display: true, text: 'MPa' } },
+          y: { grid: { display: false }, ticks: { font: { size: 10 } } }
+        }
+      }
+    });
+
+    mkChart('c-matcout', {
+      type: 'bar',
+      data: {
+        labels: ['Inconel 718', 'NdFeB', 'Titane Gr5', 'CFRP', 'Epoxy', 'Acier inox', 'GFRP', 'Acier S355'],
+        datasets: [{
+          label: '€/kg',
+          data: [55, 80, 35, 30, 8, 3.5, 3.2, 0.8],
+          backgroundColor: C.amber+'cc',
+          borderRadius: 6, borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: gridOpts(), ticks: { font: { size: 10 }, maxRotation: 35 } },
+          y: { grid: gridOpts(), title: { display: true, text: '€/kg' } }
+        }
+      }
+    });
+
+    mkChart('c-matcat', {
+      type: 'doughnut',
+      data: {
+        labels: ['Métallique', 'Composite', 'Polymère', 'Magnétique', 'Lubrifiant', 'Isolant'],
+        datasets: [{
+          data: [9, 3, 5, 2, 2, 2],
+          backgroundColor: [C.cyan+'cc', C.green+'cc', C.amber+'cc', C.violet+'cc', C.red+'cc', C.muted+'cc'],
+          borderWidth: 0, hoverOffset: 5
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'right', labels: { boxWidth: 10, padding: 6, font: { size: 10 } } } },
+        cutout: '55%'
+      }
+    });
+
+    mkChart('c-duree', {
+      type: 'bar',
+      data: {
+        labels: ['Fondations', 'Transfo', 'Mât acier', 'Pales', 'Générateur', 'Convertisseur', 'Multiplicateur', 'Roulement', 'SCADA'],
+        datasets: [{
+          label: 'Durée vie (ans)',
+          data: [50, 30, 28, 22, 20, 15, 15, 12, 10],
+          backgroundColor: function(ctx) {
+            var v = ctx.raw;
+            if (v >= 25) return C.green + 'cc';
+            if (v >= 15) return C.amber + 'cc';
+            return C.red + 'cc';
+          },
+          borderRadius: 6, borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: gridOpts(), ticks: { font: { size: 9 }, maxRotation: 35 } },
+          y: { grid: gridOpts(), title: { display: true, text: 'Années' } }
+        }
+      }
+    });
+  }
+
+  if (page === 'economique') {
+
+    // Pareto
+    mkChart('c-pareto', {
+      type: 'bar',
+      data: {
+        labels: ['LeadingEdge', 'TrailingEdge', 'Root', 'Tower', 'Generator', 'Bearing', 'Gearbox', 'PitchSys'],
+        datasets: [{
+          type: 'bar',
+          label: 'Coût (k€)',
+          data: [1863, 996, 923, 886, 860, 673, 528, 439],
+          backgroundColor: [C.red+'cc', C.red+'aa', C.amber+'cc', C.amber+'aa', C.cyan+'cc', C.cyan+'aa', C.green+'cc', C.green+'aa'],
+          borderRadius: 6, borderSkipped: false, yAxisID: 'y'
+        }, {
+          type: 'line',
+          label: '% cumulé',
+          data: [28, 43, 57, 70, 83, 93, 101, 108],
+          borderColor: C.amber, backgroundColor: 'transparent',
+          tension: 0.4, pointRadius: 4, yAxisID: 'y2'
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'top', labels: { boxWidth: 12 } } },
+        scales: {
+          x: { grid: gridOpts(), ticks: { font: { size: 10 } } },
+          y: { grid: gridOpts(), title: { display: true, text: 'k€' } },
+          y2: { position: 'right', grid: { display: false }, min: 0, max: 120, title: { display: true, text: '% cumulé' } }
+        }
+      }
+    });
+
+    // Préventif vs Correctif
+    mkChart('c-prevcorr', {
+      type: 'bar',
+      data: {
+        labels: ['LEP (pale)', 'Ultrasons pale', 'Anticorrosion', 'Surveillance vib.', 'Analyse huile'],
+        datasets: [{
+          label: 'Coût préventif (€/an)',
+          data: [2500, 8000, 20000, 15000, 25000],
+          backgroundColor: C.green + 'cc',
+          borderRadius: 6, borderSkipped: false
+        }, {
+          label: 'Coût correctif évité (€)',
+          data: [33981, 49985, 88645, 39085, 150000],
+          backgroundColor: C.red + 'cc',
+          borderRadius: 6, borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'top', labels: { boxWidth: 12 } } },
+        scales: {
+          x: { grid: gridOpts(), ticks: { font: { size: 10 }, maxRotation: 20 } },
+          y: { grid: gridOpts(), title: { display: true, text: '€' } }
+        }
+      }
+    });
+
+    // Évolution coût moyen
+    mkChart('c-evol2', {
+      type: 'line',
+      data: {
+        labels: ['2020', '2021', '2022', '2023', '2024'],
+        datasets: [{
+          label: 'Coût moyen/incident (€)',
+          data: [47411, 45162, 26477, 49996, 25794],
+          borderColor: C.cyan, backgroundColor: C.cyan+'22',
+          tension: 0.4, fill: true, pointRadius: 5, pointBackgroundColor: C.cyan
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: gridOpts() },
+          y: { grid: gridOpts(), title: { display: true, text: '€/incident' } }
+        }
+      }
+    });
+  }
+
+  if (page === 'maintenance') {
+
+    // Criticité
+    mkChart('c-criticite', {
+      type: 'radar',
+      data: {
+        labels: ['Fréquence', 'Coût réparation', 'Durée arrêt', 'Préventibilité', 'Impact production'],
+        datasets: [{
+          label: 'Bord d\'attaque',
+          data: [90, 65, 55, 90, 70],
+          borderColor: C.red, backgroundColor: C.red + '22', pointBackgroundColor: C.red
+        }, {
+          label: 'Multiplicateur',
+          data: [50, 95, 90, 60, 80],
+          borderColor: C.amber, backgroundColor: C.amber + '22', pointBackgroundColor: C.amber
+        }, {
+          label: 'Corrosion mât',
+          data: [65, 80, 75, 95, 60],
+          borderColor: C.cyan, backgroundColor: C.cyan + '22', pointBackgroundColor: C.cyan
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'top', labels: { boxWidth: 12 } } },
+        scales: {
+          r: {
+            grid: { color: 'rgba(30,45,69,0.8)' },
+            ticks: { backdropColor: 'transparent', color: C.muted, font: { size: 9 } },
+            pointLabels: { color: '#94a3b8', font: { size: 10 } },
+            min: 0, max: 100
+          }
+        }
+      }
+    });
+
+    // Matrice risque — scatter
+    mkChart('c-matrice', {
+      type: 'bubble',
+      data: {
+        datasets: [{
+          label: 'Composants',
+          data: [
+            { x: 29, y: 1863, r: 14, label: 'Bord d\'attaque' },
+            { x: 27, y: 923,  r: 11, label: 'Racine pale' },
+            { x: 26, y: 996,  r: 12, label: 'Bord de fuite' },
+            { x: 23, y: 886,  r: 10, label: 'Mât' },
+            { x: 22, y: 860,  r: 10, label: 'Générateur' },
+            { x: 17, y: 673,  r: 9,  label: 'Roulement' },
+            { x: 15, y: 528,  r: 8,  label: 'Gearbox' },
+            { x: 13, y: 439,  r: 7,  label: 'Pitch' },
+          ],
+          backgroundColor: [C.red+'99', C.red+'77', C.amber+'99', C.cyan+'99', C.cyan+'77', C.green+'99', C.green+'77', C.violet+'77'],
+          borderColor: 'transparent'
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: function(c) { return c.raw.label + ' : ' + c.raw.x + ' incidents, ' + Math.round(c.raw.y) + ' k€'; } } }
+        },
+        scales: {
+          x: { grid: gridOpts(), title: { display: true, text: 'Fréquence (nb incidents)' } },
+          y: { grid: gridOpts(), title: { display: true, text: 'Coût total (k€)' } }
+        }
+      }
+    });
+  }
+}
+
+// Init page 1 on load
+window.addEventListener('load', function() {
+  initCharts('vue-generale');
+});
+</script>
+</body>
+</html>
