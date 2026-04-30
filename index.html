@@ -596,6 +596,142 @@ body {
   font-weight: 700;
   font-family: 'JetBrains Mono', monospace;
 }
+
+/* ═══════════════════════════════════════
+   RESPONSIVE MOBILE — optimisé téléphone
+   (jury scannant le QR code en soutenance)
+   ═══════════════════════════════════════ */
+
+@media (max-width: 768px) {
+
+  /* Sidebar → barre du bas */
+  .sidebar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    top: auto;
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    padding: 0;
+    border-right: none;
+    border-top: 1px solid var(--border);
+    z-index: 100;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .sb-logo, .sb-section { display: none; }
+
+  .sidebar {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .sb-footer { display: none; }
+
+  .sb-item {
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 8px 4px 10px;
+    font-size: 9px;
+    gap: 3px;
+    border-left: none;
+    border-bottom: 2px solid transparent;
+    min-width: 52px;
+    text-align: center;
+  }
+
+  .sb-item.active {
+    border-left: none;
+    border-bottom: 2px solid var(--cyan);
+  }
+
+  .sb-icon { font-size: 18px; }
+  .sb-badge { display: none; }
+
+  /* Contenu principal */
+  .main {
+    margin-left: 0;
+    padding: 16px 14px 80px;
+  }
+
+  .page-title {
+    font-size: 18px;
+    margin-bottom: 6px;
+  }
+
+  .page-subtitle { font-size: 11px; }
+
+  /* ─── KPI : 2 colonnes aérées sur mobile ─── */
+  .kpi-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  /* Le 5e KPI prend toute la largeur */
+  .kpi-row .kpi:nth-child(5) {
+    grid-column: 1 / -1;
+  }
+
+  .kpi {
+    padding: 18px 16px 16px;
+    border-radius: 14px;
+  }
+
+  .kpi-value {
+    font-size: 30px;
+    margin-bottom: 6px;
+  }
+
+  .kpi-label {
+    font-size: 12px;
+    letter-spacing: 0.4px;
+  }
+
+  .kpi-sub {
+    font-size: 10px;
+    margin-top: 5px;
+  }
+
+  /* Grilles 2 colonnes → 1 colonne */
+  .charts-grid,
+  .charts-grid-3,
+  .two-col,
+  .grid-2,
+  .grid-3 {
+    grid-template-columns: 1fr !important;
+    gap: 14px;
+  }
+
+  /* Graphiques plus courts sur mobile */
+  .chart-box { padding: 14px; }
+
+  canvas {
+    max-height: 220px !important;
+  }
+
+  /* Tableaux scrollables */
+  .table-wrap, table {
+    overflow-x: auto;
+    display: block;
+    font-size: 12px;
+  }
+
+  /* Titres de sections */
+  .section-title { font-size: 13px; }
+  .section-header { margin-bottom: 10px; }
+}
+
+/* Très petit écran (iPhone SE etc.) */
+@media (max-width: 390px) {
+  .kpi-value { font-size: 26px; }
+  .kpi-label { font-size: 11px; }
+  .main { padding: 12px 10px 76px; }
+}
 </style>
 </head>
 <body>
